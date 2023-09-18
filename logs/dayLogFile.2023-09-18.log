@@ -1,0 +1,48 @@
+2023-09-18 00:47:01.700  INFO  [main] c.EzBroker - broker开始初始化
+2023-09-18 00:47:06.707  INFO  [main] c.EzBroker - broker初始化完成, 部署在:MacBook-Pro.local/192.168.124.15
+2023-09-18 00:47:06.713  INFO  [main] c.EzBroker - 尝试启动server
+2023-09-18 00:47:06.719  DEBUG [main] i.n.u.i.l.InternalLoggerFactory - Using SLF4J as the default logging framework
+2023-09-18 00:47:06.726  DEBUG [main] i.n.c.MultithreadEventLoopGroup - -Dio.netty.eventLoopThreads: 24
+2023-09-18 00:47:06.744  DEBUG [main] i.n.u.i.PlatformDependent0 - java.nio.Buffer.address: available
+2023-09-18 00:47:06.745  DEBUG [main] i.n.u.i.PlatformDependent0 - sun.misc.Unsafe.theUnsafe: available
+2023-09-18 00:47:06.745  DEBUG [main] i.n.u.i.PlatformDependent0 - sun.misc.Unsafe.copyMemory: available
+2023-09-18 00:47:06.746  DEBUG [main] i.n.u.i.PlatformDependent0 - direct buffer constructor: available
+2023-09-18 00:47:06.746  DEBUG [main] i.n.u.i.PlatformDependent0 - java.nio.Bits.unaligned: available, true
+2023-09-18 00:47:06.746  DEBUG [main] i.n.u.i.PlatformDependent0 - java.nio.DirectByteBuffer.<init>(long, int): available
+2023-09-18 00:47:06.747  DEBUG [main] i.n.u.i.Cleaner0 - java.nio.ByteBuffer.cleaner(): available
+2023-09-18 00:47:06.749  DEBUG [main] i.n.u.i.PlatformDependent - Java version: 8
+2023-09-18 00:47:06.749  DEBUG [main] i.n.u.i.PlatformDependent - -Dio.netty.noUnsafe: false
+2023-09-18 00:47:06.749  DEBUG [main] i.n.u.i.PlatformDependent - sun.misc.Unsafe: available
+2023-09-18 00:47:06.749  DEBUG [main] i.n.u.i.PlatformDependent - -Dio.netty.noJavassist: false
+2023-09-18 00:47:06.751  DEBUG [main] i.n.u.i.PlatformDependent - Javassist: unavailable
+2023-09-18 00:47:06.751  DEBUG [main] i.n.u.i.PlatformDependent - You don't have Javassist in your class path or you don't have enough permission to load dynamically generated classes.  Please check the configuration for better performance.
+2023-09-18 00:47:06.751  DEBUG [main] i.n.u.i.PlatformDependent - -Dio.netty.tmpdir: /var/folders/4_/yhg_d2557_15_2kmnd0t4fhc0000gp/T (java.io.tmpdir)
+2023-09-18 00:47:06.752  DEBUG [main] i.n.u.i.PlatformDependent - -Dio.netty.bitMode: 64 (sun.arch.data.model)
+2023-09-18 00:47:06.752  DEBUG [main] i.n.u.i.PlatformDependent - -Dio.netty.noPreferDirect: false
+2023-09-18 00:47:06.752  DEBUG [main] i.n.u.i.PlatformDependent - io.netty.maxDirectMemory: 7635730432 bytes
+2023-09-18 00:47:06.761  DEBUG [main] i.n.c.n.NioEventLoop - -Dio.netty.noKeySetOptimization: false
+2023-09-18 00:47:06.762  DEBUG [main] i.n.c.n.NioEventLoop - -Dio.netty.selectorAutoRebuildThreshold: 512
+2023-09-18 00:47:06.762  DEBUG [main] i.n.u.i.PlatformDependent - org.jctools-core.MpscChunkedArrayQueue: available
+2023-09-18 00:47:11.793  DEBUG [main] i.n.c.DefaultChannelId - -Dio.netty.processId: 73414 (auto-detected)
+2023-09-18 00:47:11.810  DEBUG [main] i.n.u.NetUtil - -Djava.net.preferIPv4Stack: false
+2023-09-18 00:47:11.811  DEBUG [main] i.n.u.NetUtil - -Djava.net.preferIPv6Addresses: false
+2023-09-18 00:47:11.812  DEBUG [main] i.n.u.NetUtil - Loopback interface: lo0 (lo0, 0:0:0:0:0:0:0:1%lo0)
+2023-09-18 00:47:11.814  DEBUG [main] i.n.u.NetUtil - /proc/sys/net/core/somaxconn: 128 (non-existent)
+2023-09-18 00:47:11.817  DEBUG [main] i.n.c.DefaultChannelId - -Dio.netty.machineId: 6c:7e:67:ff:fe:bc:99:fd (auto-detected)
+2023-09-18 00:47:11.818  DEBUG [main] i.n.u.i.ThreadLocalRandom - -Dio.netty.initialSeedUniquifier: 0x5a78af38c9f1b85e
+2023-09-18 00:47:11.825  DEBUG [main] i.n.u.ResourceLeakDetector - -Dio.netty.leakDetection.level: simple
+2023-09-18 00:47:11.825  DEBUG [main] i.n.u.ResourceLeakDetector - -Dio.netty.leakDetection.maxRecords: 4
+2023-09-18 00:47:11.838  DEBUG [main] i.n.b.PooledByteBufAllocator - -Dio.netty.allocator.numHeapArenas: 24
+2023-09-18 00:47:11.839  DEBUG [main] i.n.b.PooledByteBufAllocator - -Dio.netty.allocator.numDirectArenas: 24
+2023-09-18 00:47:11.839  DEBUG [main] i.n.b.PooledByteBufAllocator - -Dio.netty.allocator.pageSize: 8192
+2023-09-18 00:47:11.839  DEBUG [main] i.n.b.PooledByteBufAllocator - -Dio.netty.allocator.maxOrder: 11
+2023-09-18 00:47:11.839  DEBUG [main] i.n.b.PooledByteBufAllocator - -Dio.netty.allocator.chunkSize: 16777216
+2023-09-18 00:47:11.839  DEBUG [main] i.n.b.PooledByteBufAllocator - -Dio.netty.allocator.tinyCacheSize: 512
+2023-09-18 00:47:11.839  DEBUG [main] i.n.b.PooledByteBufAllocator - -Dio.netty.allocator.smallCacheSize: 256
+2023-09-18 00:47:11.839  DEBUG [main] i.n.b.PooledByteBufAllocator - -Dio.netty.allocator.normalCacheSize: 64
+2023-09-18 00:47:11.840  DEBUG [main] i.n.b.PooledByteBufAllocator - -Dio.netty.allocator.maxCachedBufferCapacity: 32768
+2023-09-18 00:47:11.840  DEBUG [main] i.n.b.PooledByteBufAllocator - -Dio.netty.allocator.cacheTrimInterval: 8192
+2023-09-18 00:47:11.846  DEBUG [main] i.n.b.ByteBufUtil - -Dio.netty.allocator.type: pooled
+2023-09-18 00:47:11.847  DEBUG [main] i.n.b.ByteBufUtil - -Dio.netty.threadLocalDirectBufferSize: 65536
+2023-09-18 00:47:11.847  DEBUG [main] i.n.b.ByteBufUtil - -Dio.netty.maxThreadLocalCharBufferSize: 16384
+2023-09-18 00:47:11.858  INFO  [main] c.EzBroker - server启动完成
