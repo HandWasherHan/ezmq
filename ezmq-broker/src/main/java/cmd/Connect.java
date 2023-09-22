@@ -34,7 +34,7 @@ public class Connect<T> implements Serializable {
         return this;
     }
 
-    public static Connect<ClusterDTO> welcome(EzBroker you, Map<Integer, Broker> follower) {
+    public static Connect<ClusterDTO> welcome(EzBroker you, Map<Integer, EzBroker> follower) {
         return new Connect<>(new ClusterDTO(you, follower), ConnectTypeEnum.WELCOME);
     }
 

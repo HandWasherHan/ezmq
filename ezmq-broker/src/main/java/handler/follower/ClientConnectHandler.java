@@ -1,8 +1,6 @@
 package handler.follower;
 
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,7 +44,7 @@ public class ClientConnectHandler extends ChannelInboundHandlerAdapter {
             case REDIRECT: {
                 EzBroker leader = (EzBroker) data;
                 logger.info("重定向到:{}", leader);
-                String hostname = leader.getEndPoint().getHostname();
+                String hostname = leader.getEndPoint().getHostAddr();
                 InetSocketAddress inetAddr = new InetSocketAddress(hostname, BrokerConfig.INTER_PORT);
                 ctx.channel().connect(inetAddr);
                 ctx.channel().writeAndFlush(new Connect<Broker>(broker).getConnect());

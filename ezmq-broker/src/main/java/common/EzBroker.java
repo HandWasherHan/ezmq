@@ -4,25 +4,36 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Scanner;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import cmd.Connect;
 import constant.BrokerConfig;
 import contract.EndPoint;
 import handler.follower.ClientConnectHandler;
 import handler.leader.ConnectHandler;
 import handler.shared.HeartBeatHandler;
 import io.netty.bootstrap.Bootstrap;
+import io.netty.bootstrap.BootstrapConfig;
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.bootstrap.ServerBootstrapConfig;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.codec.serialization.ClassResolvers;
+import io.netty.handler.codec.serialization.ObjectDecoder;
+import io.netty.handler.codec.serialization.ObjectEncoder;
+import io.netty.util.concurrent.EventExecutorGroup;
 import lombok.Data;
 
 /**
@@ -47,13 +58,16 @@ public class EzBroker implements Broker{
     private ServerBootstrap serverBootstrap;
     private Bootstrap bootstrap;
     /**
-     * this channel refers to the leader when the broker is a follower
+     * this channel refers to the server when the broker is a follower
      * else, null
      */
     private Channel channel;
     private List<Object> buffer;
 
 
+    public EzBroker() {
+
+    }
     public EzBroker(EndPoint endPoint) {
         this.endPoint = endPoint;
     }
@@ -66,8 +80,8 @@ public class EzBroker implements Broker{
         InetSocketAddress inet = (InetSocketAddress) addr;
         this.endPoint = new EndPoint(inet.getHostName());
     }
-    public void runServer() {
-        logger.info("尝试启动server");
+    public void runLeader() {
+        logger.info("尝试启动leader");
         assertInitialized();
         serverBootstrap = new ServerBootstrap();
         serverBootstrap
@@ -80,6 +94,9 @@ public class EzBroker implements Broker{
                     @Override
                     protected void initChannel(NioSocketChannel ch) throws Exception {
                         ch.pipeline()
+                                .addLast(new ObjectDecoder(1024 * 1024,
+                                        ClassResolvers.weakCachingResolver(this.getClass().getClassLoader())))
+                                .addLast(new ObjectEncoder())
                                 .addLast(new ConnectHandler(broker))
                                 .addLast(new HeartBeatHandler(broker));
                     }
@@ -89,21 +106,23 @@ public class EzBroker implements Broker{
                     }
                 }.accept(this));
         serverBootstrap.bind(BrokerConfig.INTER_PORT);
-        logger.info("server启动完成");
+        logger.info("leader启动完成");
     }
 
-    public void runClient(String leaderHostname) {
+    public void runFollower(String leaderAddr) {
         assertInitialized();
-        SocketAddress socketAddress = new InetSocketAddress(leaderHostname, BrokerConfig.INTER_PORT);
+        SocketAddress socketAddress = new InetSocketAddress(leaderAddr, BrokerConfig.INTER_PORT);
         bootstrap = new Bootstrap();
         this.channel = bootstrap.group(new NioEventLoopGroup())
-                .remoteAddress(socketAddress)
                 .channel(NioSocketChannel.class)
                 .handler(new ChannelInitializer<NioSocketChannel>() {
                     private EzBroker broker;
                     @Override
                     protected void initChannel(NioSocketChannel ch) throws Exception {
                         ch.pipeline()
+                                .addLast(new ObjectDecoder(1024 * 1024,
+                                        ClassResolvers.weakCachingResolver(this.getClass().getClassLoader())))
+                                .addLast(new ObjectEncoder())
                                 .addLast(new ClientConnectHandler(broker))
                                 .addLast(new HeartBeatHandler(broker));
                     }
@@ -112,8 +131,15 @@ public class EzBroker implements Broker{
                         return this;
                     }
                 })
-                .connect()
+                .connect(socketAddress)
                 .channel();
+        channel.writeAndFlush(new Connect<Broker>(this).getConnect()).addListener(future -> {
+            if (future.isSuccess()) {
+                logger.info("follower启动完成，连接至:{}", leader);
+            } else {
+                logger.error("连接失败, {}", future);
+            }
+        });
     }
 
     public void init() {
@@ -123,7 +149,10 @@ public class EzBroker implements Broker{
         }
         try {
             initialized = true;
-            endPoint.setHostname(InetAddress.getLocalHost().getHostName());
+            endPoint.setHostAddr(InetAddress.getLocalHost().getHostAddress());
+            followers = new ConcurrentHashMap<>();
+            deadFollowers = new ConcurrentHashMap<>();
+            buffer = new ArrayList<>();
         } catch (UnknownHostException uhe) {
             logger.error("", uhe);
         } catch (Exception e){
@@ -131,19 +160,22 @@ public class EzBroker implements Broker{
             logger.error("broker初始化失败:{}", this);
             throw e;
         }
-        logger.info("broker初始化完成, 部署在:{}", endPoint.getHostname());
+        logger.info("broker初始化完成, 部署在:{}", endPoint.getHostAddr());
 
     }
 
-    public synchronized void acceptBroker(EzBroker broker) {
+    public synchronized EzBroker acceptBroker(Channel channel) {
+        EzBroker comer = new EzBroker();
+        comer.setChannel(channel);
+        comer.setBuffer(new ArrayList<>());
         int id = members + 1;
-        EzBroker ezBroker = (EzBroker) broker;
-        ezBroker.setId(id);
-        ezBroker.setLeader(this);
-        followers.put(id, broker);
+        comer.setId(id);
+        comer.setLeader(this);
+        followers.put(id, comer);
         members++;
-        ezBroker.getBuffer().addAll(buffer);
-        logger.info("数据同步到到follower:{}", broker);
+        comer.getBuffer().addAll(buffer);
+        logger.info("数据同步到到follower:{}", comer);
+        return comer;
     }
 
     public void writeReplica(Object data) {
@@ -170,15 +202,80 @@ public class EzBroker implements Broker{
 
     public static void main(String[] args) throws UnknownHostException {
         EzBroker ezBroker = new EzBroker(new InetSocketAddress(InetAddress.getLocalHost(), BrokerConfig.INTER_PORT));
+        Scanner sc = new Scanner(System.in);
         ezBroker.init();
-        if (args[0].equals("server")) {
-            ezBroker.runServer();
+        if (args.length != 0){
+            if (args[0].equals("leader")) {
+                ezBroker.runLeader();
+            }
+            if (args[0].equals("follower")) {
+                ezBroker.runFollower(args[1]);
+            }
+        } else {
+            System.out.println("start leader or follower?");
+            String str = sc.nextLine();
+            if (str.equals("leader")) {
+                ezBroker.runLeader();
+            } else {
+                System.out.println("input your leader's hostname");
+                ezBroker.runFollower(sc.nextLine());
+            }
         }
-        if (args[0].equals("client")) {
-            ezBroker.runClient(args[1]);
+        String str;
+        while (!(str = sc.nextLine()).equals("quit")) {
+            switch (str) {
+                case "show followers": {
+                    System.out.println("followers如下");
+                    System.out.println(ezBroker.getFollowers());
+                    System.out.println("无响应followers如下");
+                    System.out.println(ezBroker.getDeadFollowers());
+                    break;
+                }
+                case "am i leader": {
+                    if (ezBroker.leader == null) {
+                        System.out.println("Yes");
+                    } else {
+                        System.out.println("No, your leader is");
+                        System.out.println(ezBroker.leader);
+                    }
+                }
+            }
         }
+        Optional.of(ezBroker)
+                .map(EzBroker::getServerBootstrap)
+                .map(ServerBootstrap::config)
+                .map(ServerBootstrapConfig::group)
+                .ifPresent(EventExecutorGroup::shutdownGracefully);
+        Optional.of(ezBroker)
+                .map(EzBroker::getServerBootstrap)
+                .map(ServerBootstrap::config)
+                .map(ServerBootstrapConfig::childGroup)
+                .ifPresent(EventExecutorGroup::shutdownGracefully);
+        Optional.of(ezBroker)
+                .map(EzBroker::getBootstrap)
+                .map(Bootstrap::config)
+                .map(BootstrapConfig::group)
+                .ifPresent(EventExecutorGroup::shutdownGracefully);
     }
 
 
-
+    /**
+     * 防stackoverflow，只打部分数据
+     * @return
+     */
+    @Override
+    public String toString() {
+        return "EzBroker{" +
+                "endPoint=" + endPoint +
+                ", id=" + id +
+                ", members=" + members +
+                ", lastTrans=" + lastTrans +
+                ", initialized=" + initialized +
+                ", term=" + term +
+                ", serverBootstrap=" + serverBootstrap +
+                ", bootstrap=" + bootstrap +
+                ", channel=" + channel +
+                ", buffer=" + buffer +
+                '}';
+    }
 }

@@ -1,9 +1,6 @@
 package contract;
 
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.net.URL;
 
 import lombok.Data;
 
@@ -13,13 +10,13 @@ import lombok.Data;
  */
 @Data
 public class EndPoint {
-    private String hostname;
+    private String hostAddr;
 
     public EndPoint(InetSocketAddress addr) {
-        this.hostname = addr.getHostName();
+        this.hostAddr = addr.getHostName();
     }
 
-    public EndPoint(String hostname) {
-        this.hostname = hostname;
+    public EndPoint(String hostAddr) {
+        this.hostAddr = hostAddr;
     }
 }
