@@ -51,8 +51,8 @@ public class HeartBeatHandler extends ChannelInboundHandlerAdapter {
             if (idleStateEvent.state() == IdleState.WRITER_IDLE) {
                 logger.info("heart beat sent");
                 //向所有follower发送心跳消息，并在发送失败时关闭该连接
-                Map<Integer, Broker> followers = broker.getFollowers();
-                Map<Integer, Broker> deadFollowers = broker.getDeadFollowers();
+                Map<Integer, EzBroker> followers = broker.getFollowers();
+                Map<Integer, EzBroker> deadFollowers = broker.getDeadFollowers();
                 followers.forEach((k, v) -> {
                     ((EzBroker)v).getChannel()
                             .writeAndFlush(MetaData.heartBeat())

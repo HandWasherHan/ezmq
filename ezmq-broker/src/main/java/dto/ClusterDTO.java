@@ -15,5 +15,5 @@ import lombok.Data;
 @Data
 public class ClusterDTO {
     private EzBroker you;
-    private Map<Integer, Broker> followers;
+    private Map<Integer, EzBroker> followers;
 }

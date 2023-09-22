@@ -1,8 +1,18 @@
 package handler.follower;
 
+import java.util.Set;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import common.EzBroker;
+import constant.BrokerConfig;
+import handler.event.VoteEvent;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.util.internal.ConcurrentSet;
 
 /**
  * activated when a follower find its leader doesn't keep the heartbeat frequency
@@ -10,13 +20,63 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
  * Created on 2023
  */
 public class VoteHandler extends ChannelInboundHandlerAdapter {
+    private static final Logger logger = LoggerFactory.getLogger(VoteHandler.class);
     private EzBroker broker;
+    // 是否已投过选票
+    private boolean voted;
+    private Set<Integer> voteSet = new ConcurrentSet<>();
 
     public VoteHandler(EzBroker broker) {
         this.broker = broker;
     }
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
-        ctx.fireUserEventTriggered(evt);
+        // 当某个follower记录的leader过久没心跳，触发之，给其他followers发送选举通知，表示自己参选
+        voted = true;
+        voteSet.add(broker.getId());
+        broker.getFollowers().forEach((k, v) -> {
+            broker.getBootstrap().connect(v.getEndPoint().getAddr().getHostAddress(), BrokerConfig.INTER_PORT);
+            ctx.writeAndFlush(VoteEvent.canvass()).addListener(future -> {
+                    logger.info("vote接收到来自{}的回信:{}, 由{}线程处理", k, future, Thread.currentThread());
+                    if (future.isSuccess())
+                        voteSet.add(k);
+                });
+        });
+        Thread.sleep(BrokerConfig.WAIT_VOTE_TIME);
+        if (voteSet.size() * 2 > broker.getMembers()) {
+            // todo 自己当选
+        } else {
+            // todo 等别人当选 or 选举失败，重新选举
+        }
+    }
+
+    /**
+     * 接收并处理拉票消息
+     * @param ctx
+     * @param msg
+     * @throws Exception
+     */
+    @Override
+    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+        if (!(msg instanceof VoteEvent)) {
+            ctx.fireChannelRead(msg);
+        }
+        assert msg instanceof VoteEvent;
+        VoteEvent vote = (VoteEvent) msg;
+        logger.info("接收到选举相关消息:{}", vote);
+        if (vote.getType() == VoteEvent.CANVASS) {
+            logger.debug("新的candidate, 来自于channel:{}", ctx.channel());
+            if (voted) {
+                ctx.channel().newFailedFuture(new IllegalStateException("已投出选票"));
+            } else {
+                ctx.writeAndFlush(VoteEvent.elected(broker.getId()));
+            }
+        } else if (vote.getType() > 0) {
+          logger.info("接收到当选消息:{}, 来自于channel:{}", vote, ctx.channel());
+          broker.setLeader(new EzBroker(ctx.channel().remoteAddress()));
+        } else {
+            logger.error("错误的voteEvent:{}", vote);
+        }
+
     }
 }

@@ -40,13 +40,9 @@ public class EzBroker implements Broker{
     private long lastTrans; // 上次发心跳的时间
     private volatile boolean initialized;
     private int term;
-    /**
-     * 使用{@link constant.BrokerStatus}
-      */
-    private int status;
 
-    private Map<Integer, Broker> followers;
-    private Map<Integer, Broker> deadFollowers;
+    private Map<Integer, EzBroker> followers;
+    private Map<Integer, EzBroker> deadFollowers;
 
     private ServerBootstrap serverBootstrap;
     private Bootstrap bootstrap;
@@ -62,10 +58,14 @@ public class EzBroker implements Broker{
         this.endPoint = endPoint;
     }
 
-    public EzBroker(InetAddress inetAddress) {
-        this.endPoint = new EndPoint(inetAddress);
+    public EzBroker(String hostname) {
+        this.endPoint = new EndPoint(hostname);
     }
 
+    public EzBroker(SocketAddress addr) {
+        InetSocketAddress inet = (InetSocketAddress) addr;
+        this.endPoint = new EndPoint(inet.getHostName());
+    }
     public void runServer() {
         logger.info("尝试启动server");
         assertInitialized();
@@ -123,7 +123,7 @@ public class EzBroker implements Broker{
         }
         try {
             initialized = true;
-            endPoint.setAddr(InetAddress.getLocalHost());
+            endPoint.setHostname(InetAddress.getLocalHost().getHostName());
         } catch (UnknownHostException uhe) {
             logger.error("", uhe);
         } catch (Exception e){
@@ -131,11 +131,11 @@ public class EzBroker implements Broker{
             logger.error("broker初始化失败:{}", this);
             throw e;
         }
-        logger.info("broker初始化完成, 部署在:{}", endPoint.getAddr());
+        logger.info("broker初始化完成, 部署在:{}", endPoint.getHostname());
 
     }
 
-    public synchronized void acceptBroker(Broker broker) {
+    public synchronized void acceptBroker(EzBroker broker) {
         int id = members + 1;
         EzBroker ezBroker = (EzBroker) broker;
         ezBroker.setId(id);
@@ -169,7 +169,7 @@ public class EzBroker implements Broker{
     }
 
     public static void main(String[] args) throws UnknownHostException {
-        EzBroker ezBroker = new EzBroker(InetAddress.getLocalHost());
+        EzBroker ezBroker = new EzBroker(new InetSocketAddress(InetAddress.getLocalHost(), BrokerConfig.INTER_PORT));
         ezBroker.init();
         if (args[0].equals("server")) {
             ezBroker.runServer();
