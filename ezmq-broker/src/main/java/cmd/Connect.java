@@ -5,10 +5,12 @@ import java.util.Map;
 
 import common.Broker;
 import common.EzBroker;
+import contract.BrokerMetaData;
 import dto.ClusterDTO;
 import enums.ConnectTypeEnum;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * @author han <handwasherhan@gmail.com>
@@ -16,6 +18,7 @@ import lombok.Data;
  */
 @AllArgsConstructor
 @Data
+@NoArgsConstructor
 public class Connect<T> implements Serializable {
     private T data;
     private ConnectTypeEnum type;
@@ -34,8 +37,8 @@ public class Connect<T> implements Serializable {
         return this;
     }
 
-    public static Connect<ClusterDTO> welcome(EzBroker you, Map<Integer, EzBroker> follower) {
-        return new Connect<>(new ClusterDTO(you, follower), ConnectTypeEnum.WELCOME);
+    public static Connect<BrokerMetaData> welcome(BrokerMetaData metaData) {
+        return new Connect<>(metaData, ConnectTypeEnum.WELCOME);
     }
 
 

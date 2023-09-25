@@ -9,30 +9,36 @@ import org.slf4j.LoggerFactory;
 
 import common.EzBroker;
 import contract.PublishEvent;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
+import lombok.AllArgsConstructor;
 
 /**
  * used by leader to solve publish events
  * @author han <handwasherhan@gmail.com>
  * Created on 2023
  */
+@AllArgsConstructor
 public class PublisherHandler extends ChannelInboundHandlerAdapter {
     private static final Logger logger = LoggerFactory.getLogger(PublisherHandler.class);
     private EzBroker broker;
+
+
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         if (!(msg instanceof PublishEvent)) {
             ctx.fireChannelRead(msg);
             return;
         }
-        int members = broker.getMembers();
-        Map<Integer, EzBroker> followers = broker.getFollowers();
+        logger.info("接收到写入请求:{}", msg);
+        int members = broker.getMemberAddrMap().size();
+        Map<Integer, Channel> followers = broker.getFollowers();
         List<Integer> successList = new ArrayList<>();
         List<Integer> failList = new ArrayList<>();
-        followers.forEach((k, ezBroker) -> {
-            ezBroker.getChannel().writeAndFlush(msg).addListener((f) -> {
+        followers.forEach((k, v) -> {
+            v.writeAndFlush(msg).addListener((f) -> {
                 if (f.isSuccess()) {
                     successList.add(k);
                 } else {
@@ -41,6 +47,7 @@ public class PublisherHandler extends ChannelInboundHandlerAdapter {
             });
         });
         PublishEvent<?> event = (PublishEvent<?>) msg;
+        logger.debug("写入完成，成功写入了{}个副本", successList.size());
         if (successList.size() * 2 > members) {
             ctx.writeAndFlush(PublishEvent.ok(event.getId()));
         } else {
@@ -50,10 +57,5 @@ public class PublisherHandler extends ChannelInboundHandlerAdapter {
         for (int id : failList) {
             broker.getDeadFollowers().put(id, followers.remove(id));
         }
-    }
-
-    public PublisherHandler accept(EzBroker broker) {
-        this.broker = broker;
-        return this;
     }
 }

@@ -4,7 +4,7 @@ import java.io.Serializable;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import status.State;
+import status.MsgState;
 
 /**
  * @author han <handwasherhan@gmail.com>
@@ -12,7 +12,7 @@ import status.State;
  */
 @Data
 @AllArgsConstructor
-public class PublishEvent<T> implements Serializable, State {
+public class PublishEvent<T> implements Serializable, MsgState {
     private int id;
     private T payload;
     private String topic;

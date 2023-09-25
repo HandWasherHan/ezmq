@@ -9,6 +9,7 @@ import cmd.Connect;
 import common.Broker;
 import common.EzBroker;
 import constant.BrokerConfig;
+import contract.BrokerMetaData;
 import dto.ClusterDTO;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
@@ -25,11 +26,11 @@ public class ClientConnectHandler extends ChannelInboundHandlerAdapter {
         this.broker = broker;
     }
 
-    @Override
-    public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        ctx.channel().writeAndFlush(new Connect<Broker>(broker).getConnect());
-        ctx.fireChannelActive();
-    }
+//    @Override
+//    public void channelActive(ChannelHandlerContext ctx) throws Exception {
+//        ctx.channel().writeAndFlush(new Connect<>().getConnect());
+//        ctx.fireChannelActive();
+//    }
 
     @SuppressWarnings("rawtypes")
     @Override
@@ -39,24 +40,21 @@ public class ClientConnectHandler extends ChannelInboundHandlerAdapter {
             return;
         }
         Connect connect = (Connect) msg;
+        logger.info("读取到来自leader的新连接响应:{}", connect);
         Object data = connect.getData();
         switch (connect.getType()) {
             case REDIRECT: {
-                EzBroker leader = (EzBroker) data;
-                logger.info("重定向到:{}", leader);
-                String hostname = leader.getEndPoint().getHostAddr();
-                InetSocketAddress inetAddr = new InetSocketAddress(hostname, BrokerConfig.INTER_PORT);
+                String hostname = (String) data;
+                logger.info("重定向到:{}", hostname);
+                InetSocketAddress inetAddr = new InetSocketAddress(hostname, BrokerConfig.BROKER_PORT);
                 ctx.channel().connect(inetAddr);
                 ctx.channel().writeAndFlush(new Connect<Broker>(broker).getConnect());
                 return;
             }
             case WELCOME: {
-                ClusterDTO cluster = (ClusterDTO) data;
-                logger.info("获取到来自leader的集群信息:{}", cluster.getFollowers());
-                broker.setLeader(cluster.getYou().getLeader());
-                broker.setId(cluster.getYou().getId());
-                logger.info("本机编号:{}", broker.getId());
-                broker.setFollowers(cluster.getFollowers());
+                BrokerMetaData metaData = (BrokerMetaData) data;
+                logger.info("获取到来自leader的集群信息:{}", metaData);
+                broker.getBrokerMetaData().update(metaData);
                 return;
             }
             default: {

@@ -11,6 +11,7 @@ import cmd.Connect;
 import common.Broker;
 import common.EzBroker;
 import constructure.MetaData;
+import contract.BrokerMetaData;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 
@@ -41,16 +42,17 @@ public class ConnectHandler extends ChannelInboundHandlerAdapter {
             case NEW_CONNECT: {
                 logger.info("接收到来自{}的新连接请求", ctx.channel());
                 // 当前broker已不是leader，则发送重定向消息，将真正的leader发回去
-                if (broker.getLeader() != null) {
-                    ctx.channel().writeAndFlush(new Connect<Broker>(broker.getLeader()).redirect());
+                BrokerMetaData brokerMetaData = broker.getBrokerMetaData();
+                if (!brokerMetaData.isLeader()) {
+                    ctx.channel().writeAndFlush(new Connect<>(brokerMetaData.getLeaderHostAddr()).redirect());
                     ctx.fireChannelRead(msg);
                     return;
                 }
                 // 将整个集群信息发回去
-                EzBroker comer = broker.acceptBroker(ctx.channel());
-                Map<Integer, EzBroker> clusterMap = new HashMap<>(broker.getFollowers());
-                clusterMap.putAll(broker.getDeadFollowers());
-                ctx.channel().writeAndFlush(Connect.welcome(comer, clusterMap));
+                BrokerMetaData metaData = broker.acceptBroker(ctx.channel());
+                ctx.channel().writeAndFlush(Connect.welcome(metaData)).addListener(future -> {
+                    logger.debug("{}", future);
+                });
                 return;
             }
 

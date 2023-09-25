@@ -1,5 +1,6 @@
 package dto;
 
+import java.io.Serializable;
 import java.util.Map;
 
 import common.Broker;
@@ -13,7 +14,7 @@ import lombok.Data;
  */
 @AllArgsConstructor
 @Data
-public class ClusterDTO {
+public class ClusterDTO implements Serializable {
     private EzBroker you;
     private Map<Integer, EzBroker> followers;
 }
