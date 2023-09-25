@@ -7,7 +7,6 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import common.Broker;
 import common.EzBroker;
 import constant.BrokerConfig;
 import constructure.MetaData;
@@ -27,7 +26,7 @@ import io.netty.handler.timeout.IdleStateEvent;
  * Created on 2023
  */
 public class HeartBeatHandler extends ChannelInboundHandlerAdapter {
-    private EzBroker broker;
+    private final EzBroker broker;
 
     public HeartBeatHandler(EzBroker broker) {
         this.broker = broker;
@@ -39,8 +38,6 @@ public class HeartBeatHandler extends ChannelInboundHandlerAdapter {
      * 目前用于定时心跳发送，
      * 期望被设计成唯一可能探测到死broker复活的地方以防止deadFollowers的并发冲突，
      * 同时也是唯一leader broker发心跳的方法
-     *
-     * @throws Exception
      */
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {

@@ -5,7 +5,6 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -50,7 +49,7 @@ import util.NetUtils;
  * Created on 2023
  */
 @Data
-public class EzBroker implements Broker {
+public class EzBroker {
     private static final Logger logger = LoggerFactory.getLogger(EzBroker.class);
 
     private BrokerMetaData brokerMetaData;
@@ -73,15 +72,10 @@ public class EzBroker implements Broker {
     private Channel channel;
     private List<Object> buffer;
 
-
     public EzBroker() {
 
     }
 
-    public EzBroker(SocketAddress addr) {
-        InetSocketAddress inet = (InetSocketAddress) addr;
-        this.brokerMetaData = new BrokerMetaData();
-    }
     public void runLeader() {
         logger.info("尝试启动leader");
         assertInitialized();
@@ -164,6 +158,7 @@ public class EzBroker implements Broker {
             buffer = new ArrayList<>();
             memberAddrMap = new ConcurrentHashMap<>();
             memberSet = new ConcurrentSet<>();
+            brokerMetaData = new BrokerMetaData();
         } catch (Exception e){
             initialized.compareAndSet(true, false);
             logger.error("broker初始化失败:{}", this);
@@ -218,7 +213,7 @@ public class EzBroker implements Broker {
     }
 
     public static void main(String[] args) throws UnknownHostException {
-        EzBroker ezBroker = new EzBroker(new InetSocketAddress(InetAddress.getLocalHost(), BrokerConfig.BROKER_PORT));
+        EzBroker ezBroker = new EzBroker();
         Scanner sc = new Scanner(System.in);
         ezBroker.init();
         if (args.length != 0){
@@ -278,7 +273,6 @@ public class EzBroker implements Broker {
 
     /**
      * 防stackoverflow，只打部分数据
-     * @return
      */
     @Override
     public String toString() {

@@ -10,7 +10,6 @@ import org.slf4j.LoggerFactory;
 import common.EzBroker;
 import contract.PublishEvent;
 import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import lombok.AllArgsConstructor;
@@ -38,7 +37,7 @@ public class PublisherHandler extends ChannelInboundHandlerAdapter {
         List<Integer> successList = new ArrayList<>();
         List<Integer> failList = new ArrayList<>();
         followers.forEach((k, v) -> {
-            v.writeAndFlush(msg).addListener((f) -> {
+            v.writeAndFlush(msg).addListener(f -> {
                 if (f.isSuccess()) {
                     successList.add(k);
                 } else {

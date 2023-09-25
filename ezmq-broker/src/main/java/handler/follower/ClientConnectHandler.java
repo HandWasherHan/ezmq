@@ -6,11 +6,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import cmd.Connect;
-import common.Broker;
 import common.EzBroker;
 import constant.BrokerConfig;
 import contract.BrokerMetaData;
-import dto.ClusterDTO;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 
@@ -20,7 +18,7 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
  */
 public class ClientConnectHandler extends ChannelInboundHandlerAdapter {
     public static final Logger logger = LoggerFactory.getLogger(ClientConnectHandler.class);
-    private EzBroker broker;
+    private final EzBroker broker;
 
     public ClientConnectHandler(EzBroker broker) {
         this.broker = broker;
@@ -48,7 +46,7 @@ public class ClientConnectHandler extends ChannelInboundHandlerAdapter {
                 logger.info("重定向到:{}", hostname);
                 InetSocketAddress inetAddr = new InetSocketAddress(hostname, BrokerConfig.BROKER_PORT);
                 ctx.channel().connect(inetAddr);
-                ctx.channel().writeAndFlush(new Connect<Broker>(broker).getConnect());
+                ctx.channel().writeAndFlush(new Connect<>().getConnect());
                 return;
             }
             case WELCOME: {

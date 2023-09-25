@@ -1,16 +1,10 @@
 package handler.leader;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import cmd.Connect;
-import common.Broker;
 import common.EzBroker;
-import constructure.MetaData;
 import contract.BrokerMetaData;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
@@ -22,7 +16,7 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
  */
 public class ConnectHandler extends ChannelInboundHandlerAdapter {
     private static final Logger logger = LoggerFactory.getLogger(ConnectHandler.class);
-    private EzBroker broker;
+    private final EzBroker broker;
 
     public ConnectHandler(EzBroker broker) {
         this.broker = broker;
