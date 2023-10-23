@@ -1,3 +1,5 @@
 = ezmq
+:author: han
+
 == 说明
 简单的消息队列，broker支持多实例，共识算法用的raft
