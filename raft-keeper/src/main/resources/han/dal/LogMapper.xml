@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="han.dal.LogMapper">
+
+    <resultMap id="BaseResultMap" type="han.Log">
+        <id column="id" jdbcType="INTEGER" property="id"/>
+        <result column="term" jdbcType="INTEGER" property="term"/>
+        <result column="cmd" jdbcType="VARCHAR" property="cmd"/>
+    </resultMap>
+
+    <select id="selectAll">
+        select term, cmd from log;
+    </select>
+    <insert id="insert">
+        insert into log
+            (term, cmd)
+        values (#{term}, #{cmd});
+    </insert>
+
+
+</mapper>

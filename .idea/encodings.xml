@@ -9,6 +9,8 @@
     <file url="file://$PROJECT_DIR$/ezmq-common/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/publisher/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/publisher/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/raft-keeper/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/raft-keeper/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/src/main/resources" charset="UTF-8" />
   </component>
