@@ -4,7 +4,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 
-import han.Main;
 import han.dal.LogMapper;
 import jakarta.annotation.Resource;
 
@@ -12,7 +11,7 @@ import jakarta.annotation.Resource;
  * @author han <handwasherhan@gmail.com>
  * Created on 2023
  */
-@SpringBootTest(classes = Main.class)
+@SpringBootTest
 public class AppTest {
     @Resource
     LogMapper logMapper;

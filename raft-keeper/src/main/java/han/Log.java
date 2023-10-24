@@ -21,6 +21,14 @@ public class Log {
 
     }
 
+    public int getTerm() {
+        return term;
+    }
+
+    public String getCmd() {
+        return cmd;
+    }
+
     @Override
     public String toString() {
         return "Log{" +

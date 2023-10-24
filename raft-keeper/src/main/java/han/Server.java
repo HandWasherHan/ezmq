@@ -1,19 +1,25 @@
 package han;
 
+import java.util.ArrayList;
 import java.util.List;
+
+import han.msg.AppendEntry;
+import lombok.Data;
 
 /**
  * @author han <handwasherhan@gmail.com>
  * Created on 2023
  */
+@Data
 public class Server {
     // meta data
     int id;
-    boolean isLeader;
+    Integer leaderId;
+    int serverCnt;
 
     // persistent
     int term;
-    int voteFor;
+    Integer voteFor;
     List<Log> logs;
 
     // volatile
@@ -26,6 +32,20 @@ public class Server {
 
     public Server(int id) {
         this.id = id;
+        // todo 从日志文件中恢复
+        this.logs = new ArrayList<>();
+    }
+
+    /**
+     * client向server中写入数据
+     * @param msg 格式化后的命令
+     * @return 0:成功, -1:失败, 其他正数:leaderId
+     */
+    public int write(String msg) {
+        if (leaderId != id) {
+            return leaderId;
+        }
+        return 0;
     }
 
 
