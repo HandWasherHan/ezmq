@@ -3,3 +3,36 @@
 
 == 说明
 简单的消息队列，broker支持多实例，共识算法用的raft
+
+== 具体实现
+* 使用状态模式以维护server状态，状态有
+** leader
+** follower
+** candidate
+
+* 使用ServerState定义server的行为
+** into 进入某种状态，此时需要对server自身属性进行修改
+** out 从某种状态转移出去，对server属性的变更。（raft中不推荐使用）
+** write 客户端打到server的写入请求走这里。
+** read 客户端打到server的读取请求走这里。
+** idle raft中经常有需要定时执行的操作，走这里。
+
+* 使用Msg接口定义raft中两种行为的入参
+** AppendEntry
+** RequestVote
+
+* 使用Ack当作统一的返回值
+
+
+== 特殊说明
+没有严格遵循论文的写法如下：
+
+=== State
+* log[] 使用 List<Log> 实现
+* List<Log>下标从0开始
+
+=== AppendEntry
+* 使用了与RequestVote相同的返回值
+** 理由：观察到：两种请求的返回值属性类型相同，server只会接收到自己发出去的请求的ack，而每种状态最多只会发一种请求
+
+=== RequestVote
