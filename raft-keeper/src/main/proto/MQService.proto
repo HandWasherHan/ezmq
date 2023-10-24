@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+option java_package = "han.grpc";
+
+package grpc;
+
+service RaftService {
+
+  rpc SendAppendEntry(AppendEntry) returns (Ack) {};
+
+
+  rpc SendRequestVote(RequestVote) returns (Ack) {};
+
+
+}
+
+message Ack {
+  int32 term = 1;
+  bool success = 2;
+}
+
+message Log {
+  int32 term = 1;
+  string cmd = 2;
+}
+
+message AppendEntry {
+  int32 term = 1;
+  int32 leaderId = 2;
+  int32 prevLogIndex = 3;
+  int32 prevLogTerm = 4;
+  repeated Log entry = 5;
+  int32 commitIndex = 6;
+}
+
+message RequestVote {
+  int32 term = 1;
+  int32 candidateId = 2;
+  int32 lastLogIndex = 3;
+  int32 lastLogTerm = 4;
+}
+

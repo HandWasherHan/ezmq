@@ -1,16 +1,21 @@
 package han.state;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import com.google.protobuf.GeneratedMessageV3;
+
 import han.Server;
-import han.msg.Ack;
-import han.msg.AppendEntry;
-import han.msg.Msg;
-import han.msg.RequestVote;
+import han.grpc.MQService.Ack;
+import han.grpc.MQService.AppendEntry;
+import han.grpc.MQService.RequestVote;
 
 /**
  * @author han <handwasherhan@gmail.com>
  * Created on 2023
  */
 public class FollowerState implements ServerState{
+    static Logger logger = LogManager.getLogger(FollowerState.class);
     Server server;
     long lastTick;
 
@@ -36,16 +41,17 @@ public class FollowerState implements ServerState{
     }
 
     @Override
-    public Ack onReceive(Msg msg) {
+    public Ack onReceive(GeneratedMessageV3 msg) {
+        logger.info("接收到消息:{}", msg);
         if (msg instanceof AppendEntry) {
             // todo 写入日志
-            return new Ack(server.getTerm(), false);
+            return Ack.newBuilder().setTerm(server.getTerm()).setSuccess(true).build();
         } else if (msg instanceof RequestVote) {
             RequestVote rv = (RequestVote) msg;
             // todo 是否投票
             boolean canVote = false;
             // todo 检查candidate的日志是否为够新：1、lastLogIndex >= logs.size() 2、lastLogTerm >= term
-            return new Ack(server.getTerm(), canVote);
+            return Ack.newBuilder().setTerm(server.getTerm()).setSuccess(canVote).build();
         }
         return null;
     }
@@ -56,7 +62,6 @@ public class FollowerState implements ServerState{
      * @return
      */
     @Override
-    public Ack onAck(Ack ack) {
-        return null;
+    public void onAck(GeneratedMessageV3 ack) {
     }
 }

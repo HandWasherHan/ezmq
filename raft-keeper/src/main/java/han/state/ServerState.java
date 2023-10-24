@@ -1,7 +1,7 @@
 package han.state;
 
-import han.msg.Ack;
-import han.msg.Msg;
+import com.google.protobuf.GeneratedMessageV3;
+import han.grpc.MQService.Ack;
 
 /**
  * @author han <handwasherhan@gmail.com>
@@ -11,7 +11,7 @@ public interface ServerState {
     void into();
     void out();
     void idle();
-    Ack onReceive(Msg msg);
+    Ack onReceive(GeneratedMessageV3 msg);
 
-    Ack onAck(Ack ack);
+    void onAck(GeneratedMessageV3 ack);
 }
