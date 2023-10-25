@@ -5,8 +5,10 @@ import org.apache.logging.log4j.Logger;
 
 import han.MsgFactory;
 import han.Server;
+import han.ServerSingleton;
 import han.grpc.MQService.AppendEntry;
 import han.grpc.MQService.RequestVote;
+import han.grpc.RaftServiceGrpc.RaftServiceBlockingStub;
 import han.grpc.MQService.Ack;
 import han.state.LeaderState;
 import io.grpc.ManagedChannel;
@@ -18,13 +20,12 @@ import io.grpc.ManagedChannelBuilder;
  */
 public class Sender {
     static final Logger logger = LogManager.getLogger(Sender.class);
-    Server server;
+    Server server = ServerSingleton.getServer();
     ManagedChannel channel;
-    han.grpc.RaftServiceGrpc.RaftServiceBlockingStub stub;
+    RaftServiceBlockingStub stub;
 
-    public Sender(String host, int port, Server server) {
+    public Sender(String host, int port) {
         this(ManagedChannelBuilder.forAddress(host, port).usePlaintext());
-        this.server = server;
     }
 
     public Sender(ManagedChannelBuilder<?> builder) {
@@ -32,16 +33,16 @@ public class Sender {
         this.stub = han.grpc.RaftServiceGrpc.newBlockingStub(channel);
     }
 
-    public void send(AppendEntry appendEntry) {
+    public Ack send(AppendEntry appendEntry) {
         Ack ack = stub.sendAppendEntry(appendEntry);
-        // todo       处理ack
         handle(ack);
+        return ack;
     }
 
-    public void send(RequestVote requestVote) {
+    public Ack send(RequestVote requestVote) {
         Ack ack = stub.sendRequestVote(requestVote);
-        // todo       处理ack
         handle(ack);
+        return ack;
     }
 
     void assertInitialized() {
@@ -61,10 +62,9 @@ public class Sender {
     public static void main(String[] args) {
         logger.info("启动");
         Server server = new Server(1);
-        server.setState(new LeaderState());
-        Sender sender = new Sender("localhost", 8848, server);
+        server.setState(new LeaderState(server));
+        Sender sender = new Sender("localhost", 8848);
         sender.send(MsgFactory.requestVote(server));
 
     }
-
 }

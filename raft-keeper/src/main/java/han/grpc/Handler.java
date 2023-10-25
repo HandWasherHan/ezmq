@@ -5,6 +5,7 @@ import java.io.IOException;
 import com.google.protobuf.GeneratedMessageV3;
 
 import han.Server;
+import han.ServerSingleton;
 import han.grpc.RaftServiceGrpc.RaftServiceImplBase;
 import han.grpc.MQService.Ack;
 import han.grpc.MQService.AppendEntry;
@@ -21,15 +22,13 @@ import io.grpc.stub.StreamObserver;
  * Created on 2023
  */
 public class Handler {
+    int port;
+
+    public Handler(int port) {
+        this.port = port;
+    }
 
     class RaftHandler extends RaftServiceImplBase {
-        Server server;
-        public RaftHandler() {
-        }
-
-        public RaftHandler(Server server) {
-            this.server = server;
-        }
 
         @Override
         public void sendAppendEntry(AppendEntry request, StreamObserver<Ack> responseObserver) {
@@ -40,26 +39,21 @@ public class Handler {
         public void sendRequestVote(RequestVote request, StreamObserver<Ack> responseObserver) {
             handle(request, responseObserver);
         }
-        void assertInitialized() {
-            if (server == null) {
-                throw new IllegalStateException("handler未初始化");
-            }
-        }
+
 
         /**
          * 由server的state代理
          */
         void handle(GeneratedMessageV3 request, StreamObserver<Ack> responseObserver) {
-            assertInitialized();
-            Ack ack = server.getState().onReceive(request);
+            Ack ack = ServerSingleton.getServer().getState().onReceive(request);
             responseObserver.onNext(ack);
             responseObserver.onCompleted();
         }
     }
 
-    public void run(Server server, int port) {
+    public void run() {
         try {
-            io.grpc.Server grpcServer = ServerBuilder.forPort(port).addService(new RaftHandler(server)).build();
+            io.grpc.Server grpcServer = ServerBuilder.forPort(port).addService(new RaftHandler()).build();
             grpcServer.start();
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -72,7 +66,7 @@ public class Handler {
     public static void main(String[] args) throws InterruptedException {
         Server server = new Server(2);
         server.setState(new FollowerState(server));
-        new Handler().run(server, 8848);
+        new Handler(8848).run();
         Thread.sleep(10000000);
     }
 }

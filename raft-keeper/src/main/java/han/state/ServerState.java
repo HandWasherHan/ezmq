@@ -12,6 +12,5 @@ public interface ServerState {
     void out();
     void idle();
     Ack onReceive(GeneratedMessageV3 msg);
-
     void onAck(GeneratedMessageV3 ack);
 }
