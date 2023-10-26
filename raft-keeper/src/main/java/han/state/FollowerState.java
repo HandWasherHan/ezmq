@@ -14,6 +14,7 @@ import org.apache.logging.log4j.Logger;
 import com.google.protobuf.GeneratedMessageV3;
 
 import han.Server;
+import han.ServerSingleton;
 import han.StateVisitor;
 import han.grpc.MQService.Ack;
 import han.grpc.MQService.AppendEntry;
@@ -26,17 +27,18 @@ import han.grpc.MQService.RequestVote;
 public class FollowerState implements ServerState{
     static Logger logger = LogManager.getLogger(FollowerState.class);
     ScheduledExecutorService scheduledExecutorService;
-    Server server;
     long lastTick;
 
-    public FollowerState(Server server) {
-        this.server = server;
+    public FollowerState() {
     }
 
 
     @Override
     public void into() {
         scheduledExecutorService = new ScheduledThreadPoolExecutor(1);
+        idle();
+        Server server = ServerSingleton.getServer();
+        server.setVoteFor(null);
         server.setNextIndex(null);
         server.setMatchIndex(null);
     }
@@ -49,10 +51,12 @@ public class FollowerState implements ServerState{
     @Override
     public void idle() {
         scheduledExecutorService.scheduleWithFixedDelay(() -> {
+            logger.info("超时检测中...");
             if (System.currentTimeMillis() - lastTick > HEART_BEAT_INTERVAL * 2 + new Random().nextInt(RANDOM_BOUND)) {
-                StateVisitor.changeState(server, new CandidateState());
+                logger.info("超时，触发选举");
+                StateVisitor.changeState(ServerSingleton.getServer(), new CandidateState());
             }
-        }, 0,  HEART_BEAT_INTERVAL, TimeUnit.SECONDS);
+        }, HEART_BEAT_INTERVAL * 10,  HEART_BEAT_INTERVAL, TimeUnit.SECONDS);
 
     }
 
@@ -60,17 +64,40 @@ public class FollowerState implements ServerState{
     public Ack onReceive(GeneratedMessageV3 msg) {
         logger.info("接收到消息:{}", msg);
         lastTick = System.currentTimeMillis();
+        Server server = ServerSingleton.getServer();
         if (msg instanceof AppendEntry) {
             // todo 写入日志
             return Ack.newBuilder().setTerm(server.getTerm()).setSuccess(true).build();
         } else if (msg instanceof RequestVote) {
             RequestVote rv = (RequestVote) msg;
-            // todo 是否投票
-            boolean canVote = false;
-            // todo 检查candidate的日志是否为够新：1、lastLogIndex >= logs.size() 2、lastLogTerm >= term
+            boolean canVote = canVote(rv, server);
+            if (canVote) {
+                server.setVoteFor(rv.getCandidateId());
+            }
             return Ack.newBuilder().setTerm(server.getTerm()).setSuccess(canVote).build();
         }
         return null;
+    }
+
+    boolean canVote(RequestVote rv, Server server) {
+        if (server.getVoteFor() != null) {
+            return false;
+        }
+        if (rv.getTerm() < server.getTerm()) {
+            return false;
+        }
+        if (server.getLogs().isEmpty()) {
+            return true;
+        }
+        int lastIndex = server.getLogs().size();
+        if (rv.getLastLogIndex() < lastIndex) {
+            return false;
+        }
+        boolean remoteTermExpired = rv.getLastLogTerm() < server.getLogs().get(lastIndex - 1).getTerm();
+        if (remoteTermExpired) {
+            return false;
+        }
+        return true;
     }
 
     /**

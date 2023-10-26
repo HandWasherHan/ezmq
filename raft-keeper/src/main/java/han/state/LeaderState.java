@@ -10,6 +10,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.protobuf.GeneratedMessageV3;
 
+import han.ServerSingleton;
 import han.StateVisitor;
 import han.grpc.MQService.AppendEntry;
 import han.grpc.MQService.Ack;
@@ -22,19 +23,16 @@ import han.grpc.SenderListSingleton;
  */
 public class LeaderState implements ServerState{
     static Logger logger = LogManager.getLogger(LeaderState.class);
-    Server server;
-
-    public LeaderState(Server server) {
-        this.server = server;
-    }
 
     ScheduledExecutorService scheduledExecutorService;
+
     @Override
     public void into() {
+        Server server = ServerSingleton.getServer();
         scheduledExecutorService = new ScheduledThreadPoolExecutor(1);
+        idle();
         server.setNextIndex(new ArrayList<>());
         server.setMatchIndex(new ArrayList<>());
-        idle();
 
     }
 
@@ -46,11 +44,14 @@ public class LeaderState implements ServerState{
     @Override
     public void idle() {
         scheduledExecutorService.scheduleAtFixedRate(() -> {
+            long time = System.currentTimeMillis();
             SenderListSingleton.send(heartBeat());
+            logger.info("发送心跳消息完成，耗时{}ms", System.currentTimeMillis() - time);
         }, 0, 1, TimeUnit.SECONDS);
     }
 
     AppendEntry heartBeat() {
+        Server server = ServerSingleton.getServer();
         int value = server.getLogs().size() - 1;
         return AppendEntry.newBuilder()
                 .setLeaderId(0)
@@ -63,10 +64,11 @@ public class LeaderState implements ServerState{
 
     @Override
     public Ack onReceive(GeneratedMessageV3 msg) {
+        Server server = ServerSingleton.getServer();
         if (msg instanceof AppendEntry) {
             AppendEntry appendEntry = (AppendEntry) msg;
             if (appendEntry.getTerm() > server.getTerm()) {
-                StateVisitor.changeState(server, new FollowerState(server));
+                StateVisitor.changeState(server, new FollowerState());
 
             }
         }
@@ -79,6 +81,7 @@ public class LeaderState implements ServerState{
      */
     @Override
     public void onAck(GeneratedMessageV3 msg) {
+        Server server = ServerSingleton.getServer();
         if (!(msg instanceof Ack)) {
             throw new IllegalArgumentException(msg + "不是一个ack");
         }
@@ -86,7 +89,7 @@ public class LeaderState implements ServerState{
         Ack ack = (Ack) msg;
         if (ack.getTerm() > server.getTerm()) {
             server.setTerm(ack.getTerm());
-            StateVisitor.changeState(server, new FollowerState(server));
+            StateVisitor.changeState(server, new FollowerState());
             return;
         }
     }

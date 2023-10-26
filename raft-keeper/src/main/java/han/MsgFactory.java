@@ -37,4 +37,8 @@ public class MsgFactory {
         }
     }
 
+    public static RequestVote requestVote() {
+        return requestVote(ServerSingleton.getServer());
+    }
+
 }

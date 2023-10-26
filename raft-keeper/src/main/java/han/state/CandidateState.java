@@ -11,9 +11,12 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.protobuf.GeneratedMessageV3;
 
+import han.MsgFactory;
 import han.Server;
+import han.ServerSingleton;
 import han.StateVisitor;
 import han.grpc.MQService;
+import han.grpc.SenderListSingleton;
 
 /**
  * @author han <handwasherhan@gmail.com>
@@ -21,13 +24,17 @@ import han.grpc.MQService;
  */
 public class CandidateState implements ServerState{
     static final Logger logger = LogManager.getLogger(CandidateState.class);
-    Server server;
     ScheduledExecutorService scheduledExecutorService;
     @Override
     public void into() {
+        Server server = ServerSingleton.getServer();
+        logger.info("转成candidate状态");
         scheduledExecutorService = new ScheduledThreadPoolExecutor(1);
         server.setTerm(server.getTerm() + 1);
         idle();
+        if(SenderListSingleton.send(MsgFactory.requestVote())) {
+            StateVisitor.changeState(new LeaderState());
+        }
     }
 
     @Override
@@ -37,9 +44,11 @@ public class CandidateState implements ServerState{
 
     @Override
     public void idle() {
+        Server server = ServerSingleton.getServer();
         scheduledExecutorService.schedule(() -> {
-            StateVisitor.changeState(server, new CandidateState());
-        }, VOTE_TIME, TimeUnit.MILLISECONDS);
+            logger.info("选举超时失败，重新选举");
+            StateVisitor.changeState(server, new FollowerState());
+        }, VOTE_TIME, TimeUnit.SECONDS);
     }
 
     @Override

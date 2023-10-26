@@ -65,7 +65,7 @@ public class Handler {
 
     public static void main(String[] args) throws InterruptedException {
         Server server = new Server(2);
-        server.setState(new FollowerState(server));
+        server.setState(new FollowerState());
         new Handler(8848).run();
         Thread.sleep(10000000);
     }

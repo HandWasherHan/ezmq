@@ -62,7 +62,7 @@ public class Sender {
     public static void main(String[] args) {
         logger.info("启动");
         Server server = new Server(1);
-        server.setState(new LeaderState(server));
+        server.setState(new LeaderState());
         Sender sender = new Sender("localhost", 8848);
         sender.send(MsgFactory.requestVote(server));
 

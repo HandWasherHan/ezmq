@@ -3,6 +3,7 @@ package han;
 import java.util.ArrayList;
 import java.util.List;
 
+import han.state.FollowerState;
 import han.state.InitState;
 import han.state.ServerState;
 import lombok.Data;
@@ -37,7 +38,6 @@ public class Server {
         this.id = id;
         // todo 从日志文件中恢复
         this.logs = new ArrayList<>();
-        this.state = new InitState();
     }
 
     /**
