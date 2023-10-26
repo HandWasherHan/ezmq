@@ -45,7 +45,7 @@ public class FollowerState implements ServerState{
 
     @Override
     public void out() {
-        scheduledExecutorService.shutdown();
+        scheduledExecutorService.shutdownNow();
     }
 
     @Override
@@ -56,13 +56,13 @@ public class FollowerState implements ServerState{
                 logger.info("超时，触发选举");
                 StateVisitor.changeState(ServerSingleton.getServer(), new CandidateState());
             }
-        }, HEART_BEAT_INTERVAL * 10,  HEART_BEAT_INTERVAL, TimeUnit.SECONDS);
+        }, HEART_BEAT_INTERVAL * 10,  HEART_BEAT_INTERVAL, TimeUnit.MILLISECONDS);
 
     }
 
     @Override
     public Ack onReceive(GeneratedMessageV3 msg) {
-        logger.info("接收到消息:{}", msg);
+        logger.info("接收到消息:\n{}", msg);
         lastTick = System.currentTimeMillis();
         Server server = ServerSingleton.getServer();
         if (msg instanceof AppendEntry) {
@@ -74,6 +74,7 @@ public class FollowerState implements ServerState{
             if (canVote) {
                 server.setVoteFor(rv.getCandidateId());
             }
+            logger.info("canVote:{}", canVote);
             return Ack.newBuilder().setTerm(server.getTerm()).setSuccess(canVote).build();
         }
         return null;

@@ -1,5 +1,7 @@
 package han.state;
 
+import static han.Constant.HEART_BEAT_INTERVAL;
+
 import java.util.ArrayList;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -38,7 +40,7 @@ public class LeaderState implements ServerState{
 
     @Override
     public void out() {
-        scheduledExecutorService.shutdown();
+        scheduledExecutorService.shutdownNow();
     }
 
     @Override
@@ -47,7 +49,7 @@ public class LeaderState implements ServerState{
             long time = System.currentTimeMillis();
             SenderListSingleton.send(heartBeat());
             logger.info("发送心跳消息完成，耗时{}ms", System.currentTimeMillis() - time);
-        }, 0, 1, TimeUnit.SECONDS);
+        }, 0, HEART_BEAT_INTERVAL, TimeUnit.MILLISECONDS);
     }
 
     AppendEntry heartBeat() {

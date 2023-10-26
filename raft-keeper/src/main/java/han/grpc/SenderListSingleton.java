@@ -103,13 +103,15 @@ public class SenderListSingleton {
                 executor.submit(new SendMsgTask().msg(appendEntry).sender(sender).ackMap(ackMap).latch(latch));
             }
         }
+        logger.info("向{}个目标发送请求", senderList.size());
+        boolean await = false;
         try {
-            boolean await = latch.await(REQUEST_EXPIRE, TimeUnit.MILLISECONDS);
-//            System.out.println(ackMap);
-            return await;
+            await = latch.await(REQUEST_EXPIRE, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+            e.printStackTrace();
         }
+        logger.info("请求结果:{}, 接收到{}个响应， 其中成功数目为{}", await, ackMap.size(), ackMap.values());
+        return await;
     }
 
     static void isCnfLegal(String[] cnf) throws RuntimeException {
@@ -165,7 +167,6 @@ public class SenderListSingleton {
             } else {
                 ack = sender.send(appendEntry);
             }
-            logger.info("ack is {}", ack);
             if (ackMap != null) {
                 ackMap.put(sender, ack);
             }

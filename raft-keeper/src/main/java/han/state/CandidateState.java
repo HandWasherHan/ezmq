@@ -17,6 +17,9 @@ import han.ServerSingleton;
 import han.StateVisitor;
 import han.grpc.MQService;
 import han.grpc.SenderListSingleton;
+import han.grpc.MQService.RequestVote;
+import han.grpc.MQService.AppendEntry;
+import han.grpc.MQService.Ack;
 
 /**
  * @author han <handwasherhan@gmail.com>
@@ -32,14 +35,17 @@ public class CandidateState implements ServerState{
         scheduledExecutorService = new ScheduledThreadPoolExecutor(1);
         server.setTerm(server.getTerm() + 1);
         idle();
-        if(SenderListSingleton.send(MsgFactory.requestVote())) {
-            StateVisitor.changeState(new LeaderState());
-        }
+        scheduledExecutorService.execute(() -> {
+            if(SenderListSingleton.send(MsgFactory.requestVote())) {
+                StateVisitor.changeState(new LeaderState());
+            }
+        });
+
     }
 
     @Override
     public void out() {
-        scheduledExecutorService.shutdown();
+        scheduledExecutorService.shutdownNow();
     }
 
     @Override
@@ -52,7 +58,15 @@ public class CandidateState implements ServerState{
     }
 
     @Override
-    public MQService.Ack onReceive(GeneratedMessageV3 msg) {
+    public Ack onReceive(GeneratedMessageV3 msg) {
+        Server server = ServerSingleton.getServer();
+        if (msg instanceof AppendEntry) {
+            AppendEntry appendEntry = (AppendEntry) msg;
+            if (appendEntry.getTerm() >= server.getTerm()) {
+                StateVisitor.changeState(new FollowerState());
+                server.setLeaderId(appendEntry.getLeaderId());
+            }
+        }
         return null;
     }
 
