@@ -2,7 +2,7 @@ package han;
 
 import java.util.Scanner;
 
-import han.grpc.SenderListSingleton;
+import han.grpc.Sender;
 
 /**
  * @author han <handwasherhan@gmail.com>
@@ -11,7 +11,7 @@ import han.grpc.SenderListSingleton;
 public class MultiServerRunner {
 
     public static void main(String[] args) {
-        SenderListSingleton.init(true);
+        Sender.init(true);
         System.out.println("running...input [quit] to quit");
         Scanner scanner = new Scanner(System.in);
         Server server = ServerSingleton.getServer();
@@ -25,7 +25,7 @@ public class MultiServerRunner {
             String cmd = scanner.nextLine();
             server.getLogs().add(new Log(server.getLogs().size(), cmd));
             System.out.println(server.getLogs());
-            if (SenderListSingleton.send(MsgFactory.mockLog(cmd))) {
+            if (Sender.send(MsgFactory.mockLog(cmd))) {
                 logOperator.write(server.getLogs().get(server.getLogs().size() - 1));
             }
         }

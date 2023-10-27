@@ -3,7 +3,7 @@ package han;
 import java.util.ArrayList;
 import java.util.List;
 
-import han.grpc.SenderListSingleton;
+import han.grpc.Sender;
 import han.state.ServerState;
 import lombok.Data;
 
@@ -48,7 +48,7 @@ public class Server {
         if (leaderId != id) {
             return leaderId;
         }
-        SenderListSingleton.send(MsgFactory.appendEntry(this));
+        Sender.send(MsgFactory.appendEntry(this));
         return 0;
     }
 

@@ -1,70 +1,224 @@
 package han.grpc;
 
+import static han.Constant.REQUEST_EXPIRE;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.ArrayList;
+import java.util.InvalidPropertiesFormatException;
+import java.util.List;
+import java.util.Map;
+import java.util.Scanner;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.google.protobuf.GeneratedMessageV3;
+
+import han.Constant;
 import han.MsgFactory;
 import han.Server;
 import han.ServerSingleton;
 import han.grpc.MQService.AppendEntry;
-import han.grpc.MQService.RequestVote;
-import han.grpc.RaftServiceGrpc.RaftServiceBlockingStub;
 import han.grpc.MQService.Ack;
-import han.state.LeaderState;
-import io.grpc.ManagedChannel;
-import io.grpc.ManagedChannelBuilder;
+import han.grpc.MQService.RequestVote;
+import io.netty.util.concurrent.DefaultThreadFactory;
 
 /**
  * @author han <handwasherhan@gmail.com>
  * Created on 2023
  */
 public class Sender {
-    static final Logger logger = LogManager.getLogger(Sender.class);
-    Server server = ServerSingleton.getServer();
-    ManagedChannel channel;
-    RaftServiceBlockingStub stub;
+    final static Logger logger = LogManager.getLogger(ServerSingleton.class);
+    final static List<ServerStubContext> serverStubList = new ArrayList<>();
+    final static Pattern numberPattern = Pattern.compile("^\\d+$");
+    static ThreadPoolExecutor executor = new ThreadPoolExecutor(3, 16,
+            1000, TimeUnit.SECONDS,
+            new ArrayBlockingQueue<>(1000),
+            new DefaultThreadFactory(""),
+            new ThreadPoolExecutor.AbortPolicy());
 
-    public Sender(String host, int port) {
-        this(ManagedChannelBuilder.forAddress(host, port).usePlaintext());
-    }
-
-    public Sender(ManagedChannelBuilder<?> builder) {
-        this.channel = builder.build();
-        this.stub = han.grpc.RaftServiceGrpc.newBlockingStub(channel);
-    }
-
-    public Ack send(AppendEntry appendEntry) {
-        Ack ack = stub.sendAppendEntry(appendEntry);
-        handle(ack);
-        return ack;
-    }
-
-    public Ack send(RequestVote requestVote) {
-        Ack ack = stub.sendRequestVote(requestVote);
-        handle(ack);
-        return ack;
-    }
-
-    void assertInitialized() {
-        if (server == null) {
-            throw new IllegalStateException("handler未初始化");
+    public synchronized static void init(boolean multi) {
+        int me = 0;
+        if (multi) {
+            System.out.println("本机的id是:");
+            me = new Scanner(System.in).nextInt();
         }
+        init(multi, me);
     }
 
     /**
-     * 由server的state代理
+     * 本机id
+     * @param multi 是否多实例
+     * @param me 若多实例，需给出本机id
      */
-    void handle(Ack ack) {
-        assertInitialized();
-        server.getState().onAck(ack);
+    public synchronized static void init(boolean multi, int me) {
+        if (!serverStubList.isEmpty()) {
+            return;
+        }
+        File file = new File("cluster.cnf");
+        Scanner scanner;
+        try {
+            scanner = new Scanner(file);
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+        while (scanner.hasNextLine()) {
+            Constant.clusterSize++;
+            String[] serversCnf = scanner.nextLine().split(" ");
+            isCnfLegal(serversCnf);
+            String hostname = serversCnf[1];
+            int port = Integer.parseInt(serversCnf[2]);
+            int id = Integer.parseInt(serversCnf[0]);
+            if (hostname.equals("me") || (multi && id == me)) {
+                ServerSingleton.init(id);
+                HandlerInitializer.init(port);
+                ServerSingleton.getServer().setId(id);
+            }
+            if (id != serverStubList.size() + 1) {
+                throw new RuntimeException("id与实际不符, 请使用从1开始、连续的id");
+            }
+            serverStubList.add(new ServerStubContext(hostname, port));
+        }
+        logger.info("初始化完成，我是:{}", ServerSingleton.getServer());
+    }
+
+    public synchronized static void init() {
+        init(false);
+    }
+
+    /**
+     * 向所有follower发消息
+     * @param msg 要发送的消息
+     * @param carryEntry 是否需要发送entry
+     * @return 发送成功返回true，失败或超时返回false
+     */
+    public static boolean send(GeneratedMessageV3 msg, boolean carryEntry) {
+        init();
+        Map<ServerStubContext, Ack> ackMap = new ConcurrentHashMap<>();
+        CountDownLatch latch = new CountDownLatch(Constant.clusterSize / 2 + 1);
+        latch.countDown();
+        Server server = ServerSingleton.getServer();
+        boolean isVoteRequest = msg instanceof RequestVote;
+        for (int i = 0; i < serverStubList.size(); i++) {
+            ServerStubContext serverStubContext = serverStubList.get(i);
+            if (isVoteRequest) {
+                RequestVote requestVote = (RequestVote) msg;
+                executor.submit(new SendMsgTask().msg(requestVote).sender(serverStubContext).ackMap(ackMap).latch(latch));
+            } else {
+                AppendEntry appendEntry = (AppendEntry) msg;
+                if (carryEntry) {
+                    Integer nextIndex = server.getNextIndex().get(i);
+                    if (nextIndex != null && nextIndex < server.getLogs().size()) {
+                        appendEntry.getEntryList().add(MsgFactory.log(server.getLogs().get(nextIndex)));
+                    }
+                }
+                executor.submit(new SendMsgTask().msg(appendEntry).sender(serverStubContext).ackMap(ackMap).latch(latch));
+            }
+        }
+        logger.debug("向{}个目标发送请求", serverStubList.size());
+        boolean await = false;
+        try {
+            await = latch.await(REQUEST_EXPIRE, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        logger.debug("请求结果:{}, 接收到{}个响应， 其中成功数目为{}", await, ackMap.size(), ackMap.values());
+        return await;
+    }
+
+    public static boolean send(GeneratedMessageV3 msg) {
+        return send(msg, false);
+    }
+
+    static void isCnfLegal(String[] cnf) throws RuntimeException {
+        try {
+            if (cnf.length != 3) {
+                String message = "请使用以单个空格分割的三个属性：id, hostname, port";
+                throw new InvalidPropertiesFormatException(message);
+            }
+            if (!numberPattern.matcher(cnf[0]).matches()) {
+                throw new InvalidPropertiesFormatException("id必须为非负32位数字");
+            }
+            if (!numberPattern.matcher(cnf[2]).matches()) {
+                throw new InvalidPropertiesFormatException("port必须为非负数字");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
+    }
+
+    static class SendMsgTask implements Callable<Ack> {
+        ServerStubContext serverStubContext;
+        AppendEntry appendEntry;
+        RequestVote requestVote;
+        Map<ServerStubContext, Ack> ackMap;
+        CountDownLatch latch;
+        SendMsgTask sender(ServerStubContext serverStubContext) {
+            this.serverStubContext = serverStubContext;
+            return this;
+        }
+        SendMsgTask msg(AppendEntry msg) {
+            this.appendEntry = msg;
+            return this;
+        }
+        SendMsgTask msg(RequestVote msg) {
+            this.requestVote = msg;
+            return this;
+        }
+        SendMsgTask ackMap(Map<ServerStubContext, Ack> ackMap) {
+            this.ackMap = ackMap;
+            return this;
+        }
+        SendMsgTask latch(CountDownLatch latch) {
+            this.latch = latch;
+            return this;
+        }
+
+        @Override
+        public Ack call() {
+            stateCheck();
+            Ack ack;
+            if (requestVote != null) {
+                ack = serverStubContext.send(requestVote);
+            } else {
+                ack = serverStubContext.send(appendEntry);
+            }
+            if (ackMap != null) {
+                ackMap.put(serverStubContext, ack);
+            }
+            if (ack.getSuccess()) {
+                if (latch != null) {
+                    latch.countDown();
+                }
+            }
+            return ack;
+        }
+
+        void stateCheck() {
+            if (requestVote != null && appendEntry != null) {
+                throw new IllegalStateException("一次只能发一种消息");
+            }
+            if (requestVote == null && appendEntry == null) {
+                throw new IllegalStateException("没有消息可发");
+            }
+            if (serverStubContext == null) {
+                throw new IllegalStateException("sender未设置");
+            }
+        }
     }
 
     public static void main(String[] args) {
-        logger.info("启动");
-        Server server = new Server(1);
-        server.setState(new LeaderState());
-        Sender sender = new Sender("localhost", 8848);
-        sender.send(MsgFactory.requestVote(server));
-
+        ServerSingleton.init(1);
+        init();
+        serverStubList.get(2).send(MsgFactory.requestVote());
     }
 }

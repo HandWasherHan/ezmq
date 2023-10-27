@@ -17,7 +17,7 @@ import han.StateVisitor;
 import han.grpc.MQService.AppendEntry;
 import han.grpc.MQService.Ack;
 import han.Server;
-import han.grpc.SenderListSingleton;
+import han.grpc.Sender;
 
 /**
  * @author han <handwasherhan@gmail.com>
@@ -47,7 +47,7 @@ public class LeaderState implements ServerState{
     public void idle() {
         scheduledExecutorService.scheduleAtFixedRate(() -> {
             long time = System.currentTimeMillis();
-            SenderListSingleton.send(heartBeat());
+            Sender.send(heartBeat());
             logger.debug("发送心跳消息完成，耗时{}ms", System.currentTimeMillis() - time);
         }, 0, HEART_BEAT_INTERVAL, TimeUnit.MILLISECONDS);
     }

@@ -15,7 +15,7 @@ import han.MsgFactory;
 import han.Server;
 import han.ServerSingleton;
 import han.StateVisitor;
-import han.grpc.SenderListSingleton;
+import han.grpc.Sender;
 import han.grpc.MQService.AppendEntry;
 import han.grpc.MQService.Ack;
 
@@ -28,13 +28,14 @@ public class CandidateState implements ServerState{
     ScheduledExecutorService scheduledExecutorService;
     @Override
     public void into() {
-        Server server = ServerSingleton.getServer();
         logger.info("转成candidate状态");
-        scheduledExecutorService = new ScheduledThreadPoolExecutor(1);
+        Server server = ServerSingleton.getServer();
         server.setTerm(server.getTerm() + 1);
+        server.setVoteFor(server.getId());
+        scheduledExecutorService = new ScheduledThreadPoolExecutor(1);
         idle();
         scheduledExecutorService.execute(() -> {
-            if(SenderListSingleton.send(MsgFactory.requestVote())) {
+            if(Sender.send(MsgFactory.requestVote())) {
                 StateVisitor.changeState(new LeaderState());
             }
         });

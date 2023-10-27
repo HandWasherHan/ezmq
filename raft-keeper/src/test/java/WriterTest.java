@@ -7,7 +7,7 @@ import han.LogOperator;
 import han.MsgFactory;
 import han.Server;
 import han.ServerSingleton;
-import han.grpc.SenderListSingleton;
+import han.grpc.Sender;
 
 /**
  * @author han <handwasherhan@gmail.com>
@@ -17,7 +17,7 @@ public class WriterTest {
 
     @Test
     public void fun() throws IllegalAccessException {
-        SenderListSingleton.init(true, 1);
+        Sender.init(true, 1);
         System.out.println("running...input [quit] to quit");
         Scanner scanner = new Scanner(System.in);
         Server server = ServerSingleton.getServer();
@@ -26,7 +26,7 @@ public class WriterTest {
             String cmd = "hello world" + i;
             server.getLogs().add(new Log(server.getLogs().size(), cmd));
             System.out.println(server.getLogs());
-            if (SenderListSingleton.send(MsgFactory.mockLog(cmd))) {
+            if (Sender.send(MsgFactory.mockLog(cmd))) {
                 logOperator.write(server.getLogs().get(server.getLogs().size() - 1));
             }
             try {

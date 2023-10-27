@@ -13,16 +13,16 @@ import io.grpc.ServerBuilder;
 import io.grpc.stub.StreamObserver;
 
 /**
- * 处理来自sender的请求，包括
+ * 处理请求，包括
  * <li>AppendEntry</li>
  * <li>RequestVote</li>
  * @author han <handwasherhan@gmail.com>
  * Created on 2023
  */
-public class Handler {
+public class GrpcHandler {
     int port;
 
-    public Handler(int port) {
+    public GrpcHandler(int port) {
         this.port = port;
     }
 
