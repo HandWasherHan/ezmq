@@ -12,6 +12,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.protobuf.GeneratedMessageV3;
 
+import han.Constant;
 import han.ServerSingleton;
 import han.StateVisitor;
 import han.grpc.MQService.AppendEntry;
@@ -33,8 +34,12 @@ public class LeaderState implements ServerState{
         Server server = ServerSingleton.getServer();
         scheduledExecutorService = new ScheduledThreadPoolExecutor(1);
         idle();
-        server.setNextIndex(new ArrayList<>());
-        server.setMatchIndex(new ArrayList<>());
+        server.setNextIndex(new ArrayList<>(Constant.clusterSize));
+        server.setMatchIndex(new ArrayList<>(Constant.clusterSize));
+        for (int i = 0; i < Constant.clusterSize; i++) {
+            server.getNextIndex().add(0);
+            server.getMatchIndex().add(0);
+        }
 
     }
 
@@ -71,7 +76,6 @@ public class LeaderState implements ServerState{
             AppendEntry appendEntry = (AppendEntry) msg;
             if (appendEntry.getTerm() > server.getTerm()) {
                 StateVisitor.changeState(server, new FollowerState());
-
             }
         }
         return null;

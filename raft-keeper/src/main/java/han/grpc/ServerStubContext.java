@@ -1,5 +1,7 @@
 package han.grpc;
 
+import java.util.Objects;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -57,6 +59,26 @@ public class ServerStubContext {
     void handle(Ack ack) {
         assertInitialized();
         server.getState().onAck(ack);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        ServerStubContext that = (ServerStubContext) o;
+
+        if (!Objects.equals(server, that.server)) return false;
+        if (!Objects.equals(channel, that.channel)) return false;
+        return Objects.equals(stub, that.stub);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = server != null ? server.hashCode() : 0;
+        result = 31 * result + (channel != null ? channel.hashCode() : 0);
+        result = 31 * result + (stub != null ? stub.hashCode() : 0);
+        return result;
     }
 
     public static void main(String[] args) {

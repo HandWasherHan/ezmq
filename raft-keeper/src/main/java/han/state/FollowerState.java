@@ -74,11 +74,11 @@ public class FollowerState implements ServerState{
             throw new RuntimeException(e);
         }
         if (msg instanceof AppendEntry) {
-            // todo 写入日志
             AppendEntry appendEntry = (AppendEntry) msg;
-            while (server.getCommitIndex() < appendEntry.getCommitIndex()) {
+            while (!appendEntry.getEntryList().isEmpty() && server.getCommitIndex() < appendEntry.getCommitIndex()) {
                 logOperator.write(MsgFactory.log(appendEntry.getEntry(0)));
                 server.setCommitIndex(server.getCommitIndex() + 1);
+                // todo apply
             }
             return Ack.newBuilder().setTerm(server.getTerm()).setSuccess(true).build();
         } else if (msg instanceof RequestVote) {
@@ -87,7 +87,7 @@ public class FollowerState implements ServerState{
             if (canVote) {
                 server.setVoteFor(rv.getCandidateId());
             }
-            logger.info("canVote:{}", canVote);
+            logger.info("收到来自{}的选举请求, canVote:{}", rv.getCandidateId(), canVote);
             return Ack.newBuilder().setTerm(server.getTerm()).setSuccess(canVote).build();
         }
         return null;

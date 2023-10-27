@@ -13,6 +13,7 @@ public class MsgFactory {
     public static AppendEntry appendEntry(Server leader) {
         return AppendEntry.newBuilder()
                 .setLeaderId(leader.getId())
+                .setCommitIndex(leader.commitIndex)
                 .build();
     }
 
@@ -62,7 +63,6 @@ public class MsgFactory {
         return AppendEntry.newBuilder()
                 .setLeaderId(server.getId())
                 .setCommitIndex(2)
-                .addEntry(0, log(new Log(1, cmd)))
                 .build();
     }
 

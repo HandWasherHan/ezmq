@@ -21,12 +21,15 @@ public class MultiServerRunner {
         } catch (IllegalAccessException e) {
             throw new RuntimeException(e);
         }
-        while (!scanner.nextLine().equals("quit")) {
-            String cmd = scanner.nextLine();
-            server.getLogs().add(new Log(server.getLogs().size(), cmd));
-            System.out.println(server.getLogs());
-            if (Sender.send(MsgFactory.mockLog(cmd))) {
+        for (String cmd = scanner.nextLine(); !cmd.equals("quit"); cmd = scanner.nextLine()) {
+            server.getLogs().add(new Log(server.getTerm(), cmd));
+            System.out.println(server.getLogs() + "commitIndex: " + server.getCommitIndex());
+            if (Sender.send(MsgFactory.appendEntry(server), true)) {
+                System.out.println("写入成功");
+                server.setCommitIndex(server.commitIndex + 1);
                 logOperator.write(server.getLogs().get(server.getLogs().size() - 1));
+            } else {
+                System.out.println("失败，请重试");
             }
         }
     }

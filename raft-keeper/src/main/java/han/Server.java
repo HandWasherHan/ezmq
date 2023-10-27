@@ -16,7 +16,6 @@ public class Server {
     // meta data
     int id;
     Integer leaderId;
-    int serverCnt;
 
     // persistent
     int term;

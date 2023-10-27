@@ -20,8 +20,6 @@ import java.util.regex.Pattern;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.google.protobuf.GeneratedMessageV3;
-
 import han.Constant;
 import han.MsgFactory;
 import han.Server;
@@ -87,7 +85,7 @@ public class Sender {
             }
             serverStubList.add(new ServerStubContext(hostname, port));
         }
-        logger.info("初始化完成，我是:{}", ServerSingleton.getServer());
+        logger.info("初始化完成，共有{}个server，我是:{}", Constant.clusterSize, ServerSingleton.getServer());
     }
 
     public synchronized static void init() {
@@ -95,33 +93,42 @@ public class Sender {
     }
 
     /**
-     * 向所有follower发消息
+     * 向所有follower发RequestVote消息
      * @param msg 要发送的消息
-     * @param carryEntry 是否需要发送entry
      * @return 发送成功返回true，失败或超时返回false
      */
-    public static boolean send(GeneratedMessageV3 msg, boolean carryEntry) {
+    public static boolean send(RequestVote msg) {
+        init();
+        CountDownLatch latch = new CountDownLatch(Constant.clusterSize / 2 + 1);
+        latch.countDown();
+        for (ServerStubContext serverStubContext : serverStubList) {
+            executor.submit(new SendMsgTask().msg(msg).sender(serverStubContext).latch(latch));
+        }
+        logger.debug("向{}个目标发送请求", serverStubList.size());
+        try {
+            return latch.await(REQUEST_EXPIRE, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public static boolean send(AppendEntry appendEntry, boolean carryEntry) {
         init();
         Map<ServerStubContext, Ack> ackMap = new ConcurrentHashMap<>();
         CountDownLatch latch = new CountDownLatch(Constant.clusterSize / 2 + 1);
         latch.countDown();
         Server server = ServerSingleton.getServer();
-        boolean isVoteRequest = msg instanceof RequestVote;
         for (int i = 0; i < serverStubList.size(); i++) {
             ServerStubContext serverStubContext = serverStubList.get(i);
-            if (isVoteRequest) {
-                RequestVote requestVote = (RequestVote) msg;
-                executor.submit(new SendMsgTask().msg(requestVote).sender(serverStubContext).ackMap(ackMap).latch(latch));
-            } else {
-                AppendEntry appendEntry = (AppendEntry) msg;
-                if (carryEntry) {
-                    Integer nextIndex = server.getNextIndex().get(i);
-                    if (nextIndex != null && nextIndex < server.getLogs().size()) {
-                        appendEntry.getEntryList().add(MsgFactory.log(server.getLogs().get(nextIndex)));
-                    }
+            if (carryEntry) {
+                Integer nextIndex = server.getNextIndex().get(i);
+                if (nextIndex != null && nextIndex < server.getLogs().size()) {
+                    han.grpc.MQService.Log log = MsgFactory.log(server.getLogs().get(nextIndex));
+                    appendEntry = appendEntry.toBuilder().addEntry(log).build();
                 }
-                executor.submit(new SendMsgTask().msg(appendEntry).sender(serverStubContext).ackMap(ackMap).latch(latch));
             }
+            executor.submit(new SendMsgTask().msg(appendEntry).sender(serverStubContext).ackMap(ackMap).latch(latch));
         }
         logger.debug("向{}个目标发送请求", serverStubList.size());
         boolean await = false;
@@ -131,10 +138,32 @@ public class Sender {
             e.printStackTrace();
         }
         logger.debug("请求结果:{}, 接收到{}个响应， 其中成功数目为{}", await, ackMap.size(), ackMap.values());
-        return await;
+        if (!await) {
+            return false;
+        }
+        if (!carryEntry) {
+            return true;
+        }
+        logger.info("发送成功，更新状态中。。。");
+        for (int i = 0; i < serverStubList.size(); i++) {
+            ServerStubContext serverStubContext = serverStubList.get(i);
+            if (!ackMap.containsKey(serverStubContext)) {
+                continue;
+            }
+            Ack ack = ackMap.get(serverStubContext);
+            if (ack.getSuccess()) {
+                server.getNextIndex().set(i, server.getNextIndex().get(i) + 1);
+            } else {
+                logger.warn("向{}发送的消息发送失败:{}", serverStubContext, ack);
+                int element = server.getNextIndex().get(i) - 1;
+                server.getNextIndex().set(i, Math.max(element, 0));
+            }
+        }
+        logger.info("完成！");
+        return true;
     }
 
-    public static boolean send(GeneratedMessageV3 msg) {
+    public static boolean send(AppendEntry msg) {
         return send(msg, false);
     }
 
