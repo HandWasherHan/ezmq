@@ -13,6 +13,8 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.protobuf.GeneratedMessageV3;
 
+import han.LogOperator;
+import han.MsgFactory;
 import han.Server;
 import han.ServerSingleton;
 import han.StateVisitor;
@@ -51,7 +53,7 @@ public class FollowerState implements ServerState{
     @Override
     public void idle() {
         scheduledExecutorService.scheduleWithFixedDelay(() -> {
-            logger.info("超时检测中...");
+            logger.debug("超时检测中...");
             if (System.currentTimeMillis() - lastTick > HEART_BEAT_INTERVAL * 2 + new Random().nextInt(RANDOM_BOUND)) {
                 logger.info("超时，触发选举");
                 StateVisitor.changeState(ServerSingleton.getServer(), new CandidateState());
@@ -62,11 +64,22 @@ public class FollowerState implements ServerState{
 
     @Override
     public Ack onReceive(GeneratedMessageV3 msg) {
-        logger.info("接收到消息:\n{}", msg);
+        logger.debug("接收到消息:\n{}", msg);
         lastTick = System.currentTimeMillis();
         Server server = ServerSingleton.getServer();
+        LogOperator logOperator;
+        try {
+            logOperator = new LogOperator("test" + server.getId() + ".log");
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
         if (msg instanceof AppendEntry) {
             // todo 写入日志
+            AppendEntry appendEntry = (AppendEntry) msg;
+            while (server.getCommitIndex() < appendEntry.getCommitIndex()) {
+                logOperator.write(MsgFactory.log(appendEntry.getEntry(0)));
+                server.setCommitIndex(server.getCommitIndex() + 1);
+            }
             return Ack.newBuilder().setTerm(server.getTerm()).setSuccess(true).build();
         } else if (msg instanceof RequestVote) {
             RequestVote rv = (RequestVote) msg;

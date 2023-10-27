@@ -33,7 +33,7 @@ public class LogOperator {
         }
     }
 
-    void write(Log log) {
+    public void write(Log log) {
         try {
             fo.write((log.term + "\r\n").getBytes(StandardCharsets.UTF_8));
             fo.write((log.cmd + "\r\n").getBytes(StandardCharsets.UTF_8));

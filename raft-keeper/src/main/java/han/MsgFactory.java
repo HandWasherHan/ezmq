@@ -1,8 +1,7 @@
 package han;
 
-import han.Server;
+import han.grpc.MQService;
 import han.grpc.MQService.RequestVote;
-import han.grpc.MQService.Ack;
 import han.grpc.MQService.AppendEntry;
 
 /**
@@ -11,9 +10,18 @@ import han.grpc.MQService.AppendEntry;
  */
 public class MsgFactory {
 
-    public static AppendEntry send(Server leader) {
+    public static AppendEntry appendEntry(Server leader) {
         return AppendEntry.newBuilder()
                 .setLeaderId(leader.getId())
+                .build();
+    }
+
+    public static AppendEntry appendEntry(int target) {
+        Server server = ServerSingleton.getServer();
+        Integer index = server.getNextIndex().get(target);
+        return AppendEntry.newBuilder()
+                .setLeaderId(server.getId())
+                .setEntry(0, log(server.getLogs().get(index)))
                 .build();
     }
 
@@ -39,6 +47,24 @@ public class MsgFactory {
 
     public static RequestVote requestVote() {
         return requestVote(ServerSingleton.getServer());
+    }
+
+    public static MQService.Log log(Log log) {
+        return MQService.Log.newBuilder().setTerm(log.term).setCmd(log.cmd).build();
+    }
+
+    public static Log log(MQService.Log log) {
+        return new Log(log.getTerm(), log.getCmd());
+    }
+
+    public static AppendEntry mockLog(String cmd) {
+        Server server = ServerSingleton.getServer();
+        Integer index = 0;
+        return AppendEntry.newBuilder()
+                .setLeaderId(server.getId())
+                .setCommitIndex(2)
+                .addEntry(0, log(new Log(1, cmd)))
+                .build();
     }
 
 }

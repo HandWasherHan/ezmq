@@ -48,7 +48,7 @@ public class LeaderState implements ServerState{
         scheduledExecutorService.scheduleAtFixedRate(() -> {
             long time = System.currentTimeMillis();
             SenderListSingleton.send(heartBeat());
-            logger.info("发送心跳消息完成，耗时{}ms", System.currentTimeMillis() - time);
+            logger.debug("发送心跳消息完成，耗时{}ms", System.currentTimeMillis() - time);
         }, 0, HEART_BEAT_INTERVAL, TimeUnit.MILLISECONDS);
     }
 
@@ -87,7 +87,7 @@ public class LeaderState implements ServerState{
         if (!(msg instanceof Ack)) {
             throw new IllegalArgumentException(msg + "不是一个ack");
         }
-        logger.info("接收到响应:{}", msg);
+        logger.debug("接收到响应:{}", msg);
         Ack ack = (Ack) msg;
         if (ack.getTerm() > server.getTerm()) {
             server.setTerm(ack.getTerm());

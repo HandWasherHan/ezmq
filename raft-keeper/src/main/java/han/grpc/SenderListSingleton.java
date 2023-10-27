@@ -48,16 +48,25 @@ public class SenderListSingleton {
             new ThreadPoolExecutor.AbortPolicy());
 
     public synchronized static void init(boolean multi) {
-        if (!senderList.isEmpty()) {
-            return;
-        }
-        File file = new File("cluster.cnf");
-        Scanner scanner;
         int me = 0;
         if (multi) {
             System.out.println("本机的id是:");
             me = new Scanner(System.in).nextInt();
         }
+        init(multi, me);
+    }
+
+    /**
+     * 本机id
+     * @param multi
+     * @param me
+     */
+    public synchronized static void init(boolean multi, int me) {
+        if (!senderList.isEmpty()) {
+            return;
+        }
+        File file = new File("cluster.cnf");
+        Scanner scanner;
         try {
             scanner = new Scanner(file);
         } catch (FileNotFoundException e) {
@@ -103,14 +112,14 @@ public class SenderListSingleton {
                 executor.submit(new SendMsgTask().msg(appendEntry).sender(sender).ackMap(ackMap).latch(latch));
             }
         }
-        logger.info("向{}个目标发送请求", senderList.size());
+        logger.debug("向{}个目标发送请求", senderList.size());
         boolean await = false;
         try {
             await = latch.await(REQUEST_EXPIRE, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        logger.info("请求结果:{}, 接收到{}个响应， 其中成功数目为{}", await, ackMap.size(), ackMap.values());
+        logger.debug("请求结果:{}, 接收到{}个响应， 其中成功数目为{}", await, ackMap.size(), ackMap.values());
         return await;
     }
 
