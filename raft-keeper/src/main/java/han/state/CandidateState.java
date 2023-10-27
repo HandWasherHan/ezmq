@@ -36,6 +36,7 @@ public class CandidateState implements ServerState{
         idle();
         scheduledExecutorService.execute(() -> {
             if(Sender.send(MsgFactory.requestVote())) {
+                logger.info("选举成功，我是新的leader，任期号为{}", ServerSingleton.getServer().getTerm());
                 StateVisitor.changeState(new LeaderState());
             }
         });
