@@ -17,15 +17,6 @@ public class MsgFactory {
                 .build();
     }
 
-    public static AppendEntry appendEntry(int target) {
-        Server server = ServerSingleton.getServer();
-        Integer index = server.getNextIndex().get(target);
-        return AppendEntry.newBuilder()
-                .setLeaderId(server.getId())
-                .setEntry(0, log(server.getLogs().get(index)))
-                .build();
-    }
-
     /**
      * lastIndex：上一条日志的下标。用的是int，不能为空，用-1代表没有上一条日志的情况
      * @param candidate 参选人
@@ -56,14 +47,6 @@ public class MsgFactory {
 
     public static Log log(MQService.Log log) {
         return new Log(log.getTerm(), log.getCmd());
-    }
-
-    public static AppendEntry mockLog(String cmd) {
-        Server server = ServerSingleton.getServer();
-        return AppendEntry.newBuilder()
-                .setLeaderId(server.getId())
-                .setCommitIndex(2)
-                .build();
     }
 
 }

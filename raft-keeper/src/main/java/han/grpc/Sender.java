@@ -144,8 +144,10 @@ public class Sender {
         return await;
     }
 
-    public static boolean send(AppendEntry msg) {
-        return send(msg, false);
+    public static void send(AppendEntry msg) {
+        if (!send(msg, false)) {
+            logger.warn("心跳消息发送失败");
+        }
     }
 
     static void isCnfLegal(String[] cnf) throws RuntimeException {
