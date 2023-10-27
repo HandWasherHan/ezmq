@@ -40,14 +40,28 @@ public class Server {
 
     /**
      * client向server中写入数据
-     * @param msg 格式化后的命令
+     * @param cmd 格式化后的命令
      * @return 0:成功, -1:失败, 其他正数:leaderId
      */
-    public int write(String msg) {
+    public int write(String cmd) {
         if (leaderId != id) {
             return leaderId;
         }
-        Sender.send(MsgFactory.appendEntry(this));
+        Server server = this;
+        LogOperator logOperator;
+        try {
+            logOperator = new LogOperator("test" + server.getId() + ".log");
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+        server.getLogs().add(new Log(server.getTerm(), cmd));
+        System.out.println(server.getLogs() + "commitIndex: " + server.getCommitIndex());
+        if (Sender.send(MsgFactory.appendEntry(server), true)) {
+            server.setCommitIndex(server.commitIndex + 1);
+            logOperator.write(server.getLogs().get(server.getLogs().size() - 1));
+        } else {
+            return -1;
+        }
         return 0;
     }
 

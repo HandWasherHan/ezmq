@@ -58,6 +58,7 @@ public class Sender {
      * @param me 若多实例，需给出本机id
      */
     public synchronized static void init(boolean multi, int me) {
+        // todo init()有些耦合了，需要拆分
         if (!serverStubList.isEmpty()) {
             return;
         }
