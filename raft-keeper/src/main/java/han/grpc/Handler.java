@@ -4,13 +4,11 @@ import java.io.IOException;
 
 import com.google.protobuf.GeneratedMessageV3;
 
-import han.Server;
 import han.ServerSingleton;
 import han.grpc.RaftServiceGrpc.RaftServiceImplBase;
 import han.grpc.MQService.Ack;
 import han.grpc.MQService.AppendEntry;
 import han.grpc.MQService.RequestVote;
-import han.state.FollowerState;
 import io.grpc.ServerBuilder;
 import io.grpc.stub.StreamObserver;
 
@@ -28,7 +26,7 @@ public class Handler {
         this.port = port;
     }
 
-    class RaftHandler extends RaftServiceImplBase {
+    static class RaftHandler extends RaftServiceImplBase {
 
         @Override
         public void sendAppendEntry(AppendEntry request, StreamObserver<Ack> responseObserver) {
@@ -60,13 +58,4 @@ public class Handler {
         }
     }
 
-
-
-
-    public static void main(String[] args) throws InterruptedException {
-        Server server = new Server(2);
-        server.setState(new FollowerState());
-        new Handler(8848).run();
-        Thread.sleep(10000000);
-    }
 }

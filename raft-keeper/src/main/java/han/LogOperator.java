@@ -40,14 +40,16 @@ public class LogOperator {
         }
     }
 
+    public void apply(Log log) {
+        // todo
+        String cmd = log.getCmd();
+        System.out.println(cmd);
+    }
+
     public static void main(String[] args) throws IOException, IllegalAccessException {
         LogOperator test = new LogOperator("test");
         test.fo.write("hello\n".getBytes(StandardCharsets.UTF_8));
-
-        LogOperator test2 = new LogOperator("test");
-
         test.fo.write("world\n".getBytes(StandardCharsets.UTF_8));
-
-
+        test.apply(new Log(1, "1"));
     }
 }

@@ -108,16 +108,11 @@ public class FollowerState implements ServerState{
             return false;
         }
         boolean remoteTermExpired = rv.getLastLogTerm() < server.getLogs().get(lastIndex - 1).getTerm();
-        if (remoteTermExpired) {
-            return false;
-        }
-        return true;
+        return !remoteTermExpired;
     }
 
     /**
      * follower不会主动发请求，因而不会收到ack
-     * @param ack
-     * @return
      */
     @Override
     public void onAck(GeneratedMessageV3 ack) {

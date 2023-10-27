@@ -27,8 +27,7 @@ public class MsgFactory {
 
     /**
      * lastIndex：上一条日志的下标。用的是int，不能为空，用-1代表没有上一条日志的情况
-     * @param candidate
-     * @return
+     * @param candidate 参选人
      */
     public static RequestVote requestVote(Server candidate) {
         int lastIndex = candidate.getLogs().size() - 1;
@@ -40,6 +39,7 @@ public class MsgFactory {
                     .setLastLogTerm(lastIndex == -1 ? 0 : candidate.getLogs().get(lastIndex).getTerm())
                     .build();
         } catch (NullPointerException npe) {
+            npe.printStackTrace();
             // 不处理
             throw npe;
         }
@@ -59,7 +59,6 @@ public class MsgFactory {
 
     public static AppendEntry mockLog(String cmd) {
         Server server = ServerSingleton.getServer();
-        Integer index = 0;
         return AppendEntry.newBuilder()
                 .setLeaderId(server.getId())
                 .setCommitIndex(2)

@@ -56,8 +56,8 @@ public class SenderListSingleton {
 
     /**
      * 本机id
-     * @param multi
-     * @param me
+     * @param multi 是否多实例
+     * @param me 若多实例，需给出本机id
      */
     public synchronized static void init(boolean multi, int me) {
         if (!senderList.isEmpty()) {
@@ -166,7 +166,7 @@ public class SenderListSingleton {
         }
 
         @Override
-        public Ack call() throws Exception {
+        public Ack call() {
             stateCheck();
             Ack ack;
             if (requestVote != null) {

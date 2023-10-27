@@ -15,7 +15,7 @@ public class MultiServerRunner {
         System.out.println("running...input [quit] to quit");
         Scanner scanner = new Scanner(System.in);
         Server server = ServerSingleton.getServer();
-        LogOperator logOperator = null;
+        LogOperator logOperator;
         try {
             logOperator = new LogOperator("test" + server.getId() + ".log");
         } catch (IllegalAccessException e) {

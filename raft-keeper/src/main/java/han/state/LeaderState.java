@@ -92,7 +92,6 @@ public class LeaderState implements ServerState{
         if (ack.getTerm() > server.getTerm()) {
             server.setTerm(ack.getTerm());
             StateVisitor.changeState(server, new FollowerState());
-            return;
         }
     }
 
