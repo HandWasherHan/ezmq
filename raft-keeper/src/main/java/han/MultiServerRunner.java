@@ -27,9 +27,9 @@ public class MultiServerRunner {
             server.getLogs().add(new Log(server.getTerm(), cmd));
             System.out.println(server.getLogs() + "commitIndex: " + server.getCommitIndex());
             if (Sender.send(MsgFactory.appendEntry(server), true)) {
-                System.out.println("写入成功");
                 server.setCommitIndex(server.commitIndex + 1);
                 logOperator.write(server.getLogs().get(server.getLogs().size() - 1));
+                System.out.println("写入成功");
             } else {
                 System.out.println("失败，请重试");
             }

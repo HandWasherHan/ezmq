@@ -44,7 +44,7 @@ public class FollowerState implements ServerState{
         server.setVoteFor(null);
         server.setNextIndex(null);
         server.setMatchIndex(null);
-        this.delay = new Random().nextInt(10) * 200;
+        this.delay = new Random().nextInt(RANDOM_BOUND) * 200;
     }
 
     @Override
@@ -79,8 +79,10 @@ public class FollowerState implements ServerState{
         }
         if (msg instanceof AppendEntry) {
             AppendEntry appendEntry = (AppendEntry) msg;
-            while (!appendEntry.getEntryList().isEmpty() && server.getCommitIndex() < appendEntry.getCommitIndex()) {
-                logOperator.write(MsgFactory.log(appendEntry.getEntry(0)));
+            logger.debug("收到的请求:{}, 自己的logs: {}", appendEntry, server.getLogs());
+            if (!appendEntry.getEntryList().isEmpty()) {
+                server.getLogs().add(MsgFactory.log(appendEntry.getEntry(0)));
+                logOperator.write(server.getLogs().get(server.getCommitIndex()));
                 server.setCommitIndex(server.getCommitIndex() + 1);
                 // todo apply
             }

@@ -129,7 +129,8 @@ public class Sender {
                     appendEntry = appendEntry.toBuilder().addEntry(log).build();
                 }
             }
-            executor.submit(new SendMsgTask().msg(appendEntry).sender(serverStubContext).ackMap(ackMap).latch(latch));
+            SendMsgTask sendMsgTask = new SendMsgTask().msg(appendEntry).sender(serverStubContext);
+            executor.submit(sendMsgTask.ackMap(ackMap).latch(latch).targetServerId(i));
         }
         logger.debug("向{}个目标发送请求", serverStubList.size());
         boolean await = false;
@@ -139,32 +140,7 @@ public class Sender {
             e.printStackTrace();
         }
         logger.debug("请求结果:{}, 接收到{}个响应， 其中成功数目为{}", await, ackMap.size(), ackMap.values());
-        if (!await) {
-            return false;
-        }
-        if (!carryEntry) {
-            return true;
-        }
-        logger.info("发送成功，更新状态中。。。");
-        // todo 发送消息的回调需要异步执行
-        for (int i = 0; i < serverStubList.size(); i++) {
-            ServerStubContext serverStubContext = serverStubList.get(i);
-            if (!ackMap.containsKey(serverStubContext)) {
-                continue;
-            }
-            Ack ack = ackMap.get(serverStubContext);
-            if (ack.getSuccess()) {
-                logger.info("{}的nextIndex增加, 值为{}", i + 1, server.getNextIndex().get(i) + 1);
-                server.getNextIndex().set(i, server.getNextIndex().get(i) + 1);
-            } else {
-                // fixme 这里不一定全是失败的消息，也有可能是因为发送稍慢一点
-                logger.warn("向{}发送的消息发送失败:{}", serverStubContext, ack);
-                int element = server.getNextIndex().get(i) - 1;
-                server.getNextIndex().set(i, Math.max(element, 0));
-            }
-        }
-        logger.info("完成！");
-        return true;
+        return await;
     }
 
     public static boolean send(AppendEntry msg) {
@@ -195,6 +171,7 @@ public class Sender {
         RequestVote requestVote;
         Map<ServerStubContext, Ack> ackMap;
         CountDownLatch latch;
+        Integer targetServerId;
         SendMsgTask sender(ServerStubContext serverStubContext) {
             this.serverStubContext = serverStubContext;
             return this;
@@ -215,7 +192,10 @@ public class Sender {
             this.latch = latch;
             return this;
         }
-
+        SendMsgTask targetServerId(int id) {
+            this.targetServerId = id;
+            return this;
+        }
         @Override
         public Ack call() {
             stateCheck();
@@ -231,6 +211,11 @@ public class Sender {
             if (ack.getSuccess()) {
                 if (latch != null) {
                     latch.countDown();
+                }
+                if (appendEntry != null && !appendEntry.getEntryList().isEmpty()) {
+                    List<Integer> nextIndex = ServerSingleton.getServer().getNextIndex();
+                    int index = targetServerId - 1;
+                    nextIndex.set(index, nextIndex.get(index) + 1);
                 }
             }
             return ack;
