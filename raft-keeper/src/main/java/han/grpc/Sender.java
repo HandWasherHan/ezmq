@@ -122,6 +122,7 @@ public class Sender {
         for (int i = 0; i < serverStubList.size(); i++) {
             ServerStubContext serverStubContext = serverStubList.get(i);
             if (carryEntry) {
+                // fixme 疑似nextIndex不对
                 Integer nextIndex = server.getNextIndex().get(i);
                 if (nextIndex != null && nextIndex < server.getLogs().size()) {
                     han.grpc.MQService.Log log = MsgFactory.log(server.getLogs().get(nextIndex));
@@ -145,6 +146,7 @@ public class Sender {
             return true;
         }
         logger.info("发送成功，更新状态中。。。");
+        // todo 发送消息的回调需要异步执行
         for (int i = 0; i < serverStubList.size(); i++) {
             ServerStubContext serverStubContext = serverStubList.get(i);
             if (!ackMap.containsKey(serverStubContext)) {
@@ -152,8 +154,10 @@ public class Sender {
             }
             Ack ack = ackMap.get(serverStubContext);
             if (ack.getSuccess()) {
+                logger.info("{}的nextIndex增加, 值为{}", i + 1, server.getNextIndex().get(i) + 1);
                 server.getNextIndex().set(i, server.getNextIndex().get(i) + 1);
             } else {
+                // fixme 这里不一定全是失败的消息，也有可能是因为发送稍慢一点
                 logger.warn("向{}发送的消息发送失败:{}", serverStubContext, ack);
                 int element = server.getNextIndex().get(i) - 1;
                 server.getNextIndex().set(i, Math.max(element, 0));
