@@ -30,6 +30,7 @@ public class FollowerState implements ServerState{
     static Logger logger = LogManager.getLogger(FollowerState.class);
     ScheduledExecutorService scheduledExecutorService;
     long lastTick;
+    long delay;
 
     public FollowerState() {
     }
@@ -43,6 +44,7 @@ public class FollowerState implements ServerState{
         server.setVoteFor(null);
         server.setNextIndex(null);
         server.setMatchIndex(null);
+        this.delay = new Random().nextInt(10) * 200;
     }
 
     @Override
@@ -54,11 +56,13 @@ public class FollowerState implements ServerState{
     public void idle() {
         scheduledExecutorService.scheduleWithFixedDelay(() -> {
             logger.debug("超时检测中...");
-            if (System.currentTimeMillis() - lastTick > HEART_BEAT_INTERVAL * 2 + new Random().nextInt(RANDOM_BOUND)) {
+            if (System.currentTimeMillis() - lastTick > HEART_BEAT_INTERVAL * 2) {
                 logger.info("超时，触发选举");
                 StateVisitor.changeState(ServerSingleton.getServer(), new CandidateState());
             }
-        }, HEART_BEAT_INTERVAL * 10,  HEART_BEAT_INTERVAL, TimeUnit.MILLISECONDS);
+        }, HEART_BEAT_INTERVAL * 10,
+                HEART_BEAT_INTERVAL + delay,
+                TimeUnit.MILLISECONDS);
 
     }
 

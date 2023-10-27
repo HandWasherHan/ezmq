@@ -21,9 +21,14 @@ import io.grpc.stub.StreamObserver;
  */
 public class GrpcHandler {
     int port;
+    io.grpc.Server grpcServer;
 
     public GrpcHandler(int port) {
         this.port = port;
+    }
+
+    public void close() {
+        grpcServer.shutdownNow();
     }
 
     static class RaftHandler extends RaftServiceImplBase {
@@ -51,7 +56,7 @@ public class GrpcHandler {
 
     public void run() {
         try {
-            io.grpc.Server grpcServer = ServerBuilder.forPort(port).addService(new RaftHandler()).build();
+            grpcServer = ServerBuilder.forPort(port).addService(new RaftHandler()).build();
             grpcServer.start();
         } catch (IOException e) {
             throw new RuntimeException(e);

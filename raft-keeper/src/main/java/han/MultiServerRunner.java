@@ -2,7 +2,9 @@ package han;
 
 import java.util.Scanner;
 
+import han.grpc.HandlerInitializer;
 import han.grpc.Sender;
+import han.state.InitState;
 
 /**
  * @author han <handwasherhan@gmail.com>
@@ -32,5 +34,9 @@ public class MultiServerRunner {
                 System.out.println("失败，请重试");
             }
         }
+        // to close the thread pools
+        StateVisitor.changeState(new InitState());
+        HandlerInitializer.close();
+        System.out.println("bye~");
     }
 }

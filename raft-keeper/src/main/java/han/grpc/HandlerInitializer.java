@@ -14,4 +14,10 @@ public class HandlerInitializer {
             grpcHandler.run();
         }
     }
+
+    public synchronized static void close() {
+        if (grpcHandler != null) {
+            grpcHandler.close();
+        }
+    }
 }
