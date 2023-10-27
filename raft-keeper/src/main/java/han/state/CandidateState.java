@@ -15,9 +15,7 @@ import han.MsgFactory;
 import han.Server;
 import han.ServerSingleton;
 import han.StateVisitor;
-import han.grpc.MQService;
 import han.grpc.SenderListSingleton;
-import han.grpc.MQService.RequestVote;
 import han.grpc.MQService.AppendEntry;
 import han.grpc.MQService.Ack;
 

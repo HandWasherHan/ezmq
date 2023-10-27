@@ -26,11 +26,9 @@ import han.Constant;
 import han.MsgFactory;
 import han.Server;
 import han.ServerSingleton;
-import han.StateVisitor;
 import han.grpc.MQService.AppendEntry;
 import han.grpc.MQService.Ack;
 import han.grpc.MQService.RequestVote;
-import han.state.LeaderState;
 import io.netty.util.concurrent.DefaultThreadFactory;
 
 /**

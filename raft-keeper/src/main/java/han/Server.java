@@ -3,8 +3,6 @@ package han;
 import java.util.ArrayList;
 import java.util.List;
 
-import han.state.FollowerState;
-import han.state.InitState;
 import han.state.ServerState;
 import lombok.Data;
 
