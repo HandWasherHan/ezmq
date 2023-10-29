@@ -3,6 +3,7 @@ package han;
 import java.util.List;
 
 import han.grpc.Sender;
+import han.state.InitState;
 import han.state.ServerState;
 import lombok.Data;
 
@@ -33,8 +34,10 @@ public class Server {
 
     public Server(int id) {
         this.id = id;
+        this.leaderId = id;
         this.logs = LogOperatorSingleton.read();
         this.commitIndex = logs.size() - 1;
+        this.state = new InitState();
     }
 
     /**

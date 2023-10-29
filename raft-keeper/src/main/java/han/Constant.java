@@ -11,4 +11,5 @@ public class Constant {
     public static final int REQUEST_EXPIRE = 2000;
     public static final int INIT_WAIT = 20000;
     public static int clusterSize = 0;
+    public static final String DEFAULT_CLUSTER_CONFIG_FILENAME = "cluster.cnf";
 }

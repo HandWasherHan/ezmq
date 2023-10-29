@@ -20,14 +20,17 @@ import java.util.regex.Pattern;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import han.Bootstrap;
 import han.Constant;
-import han.LogOperatorSingleton;
 import han.MsgFactory;
 import han.Server;
 import han.ServerSingleton;
+import han.ServerVisitor;
 import han.grpc.MQService.AppendEntry;
 import han.grpc.MQService.Ack;
 import han.grpc.MQService.RequestVote;
+import han.state.FollowerState;
+import han.state.LeaderState;
 import io.netty.util.concurrent.DefaultThreadFactory;
 
 /**
@@ -44,33 +47,24 @@ public class Sender {
             new DefaultThreadFactory(""),
             new ThreadPoolExecutor.AbortPolicy());
 
-    public synchronized static void init(boolean multi) {
-        int me = 0;
-        if (multi) {
-            System.out.println("本机的id是:");
-            me = new Scanner(System.in).nextInt();
-            LogOperatorSingleton.init("test" + me + ".log");
-        }
-        init(multi, me);
-    }
 
     /**
-     * 本机id
-     * @param multi 是否多实例
-     * @param me 若多实例，需给出本机id
+     * 读取集群信息并初始化sender
+     * @return myPort 本机handler端口
      */
-    public synchronized static void init(boolean multi, int me) {
-        // todo init()有些耦合了，需要拆分
+    public synchronized static int readCnf(String clusterCnf, int me) throws
+            InvalidPropertiesFormatException {
         if (!serverStubList.isEmpty()) {
-            return;
+            return 0;
         }
-        File file = new File("cluster.cnf");
+        File file = new File(clusterCnf);
         Scanner scanner;
         try {
             scanner = new Scanner(file);
         } catch (FileNotFoundException e) {
             throw new RuntimeException(e);
         }
+        int myPort = -1;
         while (scanner.hasNextLine()) {
             Constant.clusterSize++;
             String[] serversCnf = scanner.nextLine().split(" ");
@@ -78,23 +72,22 @@ public class Sender {
             String hostname = serversCnf[1];
             int port = Integer.parseInt(serversCnf[2]);
             int id = Integer.parseInt(serversCnf[0]);
-            if (hostname.equals("me") || (multi && id == me)) {
-                ServerSingleton.init(id);
-                ServerSingleton.getServer().setId(id);
-                ServerSingleton.getServer().setLeaderId(me);
-                HandlerInitializer.init(port);
-            }
             if (id != serverStubList.size() + 1) {
                 throw new RuntimeException("id与实际不符, 请使用从1开始、连续的id");
             }
+            if (id == me) {
+                myPort = port;
+            }
             serverStubList.add(new ServerStubContext(hostname, port));
         }
-        logger.info("初始化完成，共有{}个server，我是:{}", Constant.clusterSize, ServerSingleton.getServer());
+        if (myPort == -1) {
+            throw new InvalidPropertiesFormatException(clusterCnf +
+                    "中没有id为[" + me + "]的server配置");
+        }
+        logger.info("初始化完成，共有{}个server", Constant.clusterSize);
+        return myPort;
     }
 
-    public synchronized static void init() {
-        init(false);
-    }
 
     /**
      * 向所有follower发RequestVote消息
@@ -102,13 +95,12 @@ public class Sender {
      * @return 发送成功返回true，失败或超时返回false
      */
     public static boolean send(RequestVote msg) {
-        init();
         CountDownLatch latch = new CountDownLatch(Constant.clusterSize / 2 + 1);
         latch.countDown();
         for (ServerStubContext serverStubContext : serverStubList) {
             executor.submit(new SendMsgTask().msg(msg).sender(serverStubContext).latch(latch));
         }
-        logger.debug("向{}个目标发送请求", serverStubList.size());
+        logger.debug("向{}个目标发送拉票请求", serverStubList.size());
         try {
             return latch.await(REQUEST_EXPIRE, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
@@ -118,7 +110,6 @@ public class Sender {
     }
 
     public static boolean send(AppendEntry appendEntry, boolean carryEntry) {
-        init();
         Map<ServerStubContext, Ack> ackMap = new ConcurrentHashMap<>();
         CountDownLatch latch = new CountDownLatch(Constant.clusterSize / 2 + 1);
         latch.countDown();
@@ -142,7 +133,8 @@ public class Sender {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        logger.debug("请求结果:{}, 接收到{}个响应， 其中成功数目为{}", await, ackMap.size(), ackMap.values());
+        logger.debug("请求结果:{}, 接收到{}个响应， 其中成功数目为{}",
+                await, ackMap.size(), ackMap.values());
         return await;
     }
 
@@ -239,9 +231,16 @@ public class Sender {
         }
     }
 
-    public static void main(String[] args) {
-        ServerSingleton.init(1);
-        init();
-        serverStubList.get(2).send(MsgFactory.requestVote());
+    public static void main(String[] args) throws InvalidPropertiesFormatException {
+        Scanner scanner = new Scanner(System.in);
+        int id = scanner.nextInt();
+        Bootstrap.batch(id);
+        if (id == 2) {
+            ServerVisitor.changeState(new FollowerState());
+        }
+        if (id == 1) {
+            ServerVisitor.changeState(new LeaderState());
+            System.out.println(serverStubList.get(1).send(MsgFactory.requestVote()));
+        }
     }
 }

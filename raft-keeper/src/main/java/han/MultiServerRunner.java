@@ -1,9 +1,9 @@
 package han;
 
+import java.util.InvalidPropertiesFormatException;
 import java.util.Scanner;
 
 import han.grpc.HandlerInitializer;
-import han.grpc.Sender;
 import han.mock.KVSingleton;
 import han.mock.MockCmd;
 import han.state.InitState;
@@ -14,10 +14,14 @@ import han.state.InitState;
  */
 public class MultiServerRunner {
 
-    public static void main(String[] args) {
-        Sender.init(true);
-        System.out.println("running...input [quit] to quit");
+    public static void main(String[] args) throws InvalidPropertiesFormatException {
+
+        System.out.println("请输入本机id");
         Scanner scanner = new Scanner(System.in);
+        int me = scanner.nextInt();
+        scanner.nextLine();
+        new Bootstrap().initLocalServer(me).initLogOperator().readClusterCnf().initHandler();
+        System.out.println("running...input [quit] to quit");
         Server server = ServerSingleton.getServer();
         for (String cmd = scanner.nextLine(); !cmd.equals("quit"); cmd = scanner.nextLine()) {
             Cmd toApply = null;
