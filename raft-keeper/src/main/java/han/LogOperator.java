@@ -75,6 +75,7 @@ public class LogOperator {
         System.out.println(cmd);
     }
 
+    @SuppressWarnings("deprecated")
     public static void main(String[] args) throws IOException, IllegalAccessException {
         LogOperator test = new LogOperator("test");
         test.fo.write("hello\n".getBytes(StandardCharsets.UTF_8));

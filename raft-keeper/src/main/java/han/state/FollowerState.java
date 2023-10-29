@@ -13,11 +13,12 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.protobuf.GeneratedMessageV3;
 
-import han.LogOperator;
+import han.Cmd;
+import han.LogOperatorSingleton;
 import han.MsgFactory;
 import han.Server;
 import han.ServerSingleton;
-import han.StateVisitor;
+import han.ServerVisitor;
 import han.grpc.MQService.Ack;
 import han.grpc.MQService.AppendEntry;
 import han.grpc.MQService.RequestVote;
@@ -58,7 +59,7 @@ public class FollowerState implements ServerState{
             logger.debug("超时检测中...");
             if (System.currentTimeMillis() - lastTick > HEART_BEAT_INTERVAL * 2) {
                 logger.info("超时，触发选举");
-                StateVisitor.changeState(ServerSingleton.getServer(), new CandidateState());
+                ServerVisitor.changeState(ServerSingleton.getServer(), new CandidateState());
             }
         }, HEART_BEAT_INTERVAL * 10,
                 HEART_BEAT_INTERVAL + delay,
@@ -71,21 +72,27 @@ public class FollowerState implements ServerState{
         logger.debug("接收到消息:\n{}", msg);
         lastTick = System.currentTimeMillis();
         Server server = ServerSingleton.getServer();
-        LogOperator logOperator;
-        try {
-            logOperator = new LogOperator("test" + server.getId() + ".log");
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
-        }
         if (msg instanceof AppendEntry) {
             AppendEntry appendEntry = (AppendEntry) msg;
+            int leaderId = appendEntry.getLeaderId();
+            if (leaderId != 0 && leaderId != server.getLeaderId()) {
+                logger.info("leader从{}更新为{}", server.getLeaderId(), leaderId);
+                server.setLeaderId(leaderId);
+            }
             logger.debug("收到的请求:{}, 自己的logs: {}", appendEntry, server.getLogs());
             if (!appendEntry.getEntryList().isEmpty()) {
                 server.getLogs().add(MsgFactory.log(appendEntry.getEntry(0)));
-                logOperator.write(server.getLogs().get(server.getCommitIndex()));
+                LogOperatorSingleton.write(server.getLogs().get(server.getCommitIndex()));
                 server.setCommitIndex(server.getCommitIndex() + 1);
-                // todo apply
             }
+            // fixme when lastApplied equals to appendEntry.getCommitIndex(), this index should be applied
+            int lastApplied = server.getLastApplied();
+            while (lastApplied < appendEntry.getCommitIndex()) {
+                String cmd = server.getLogs().get(lastApplied).getCmd();
+                Cmd.decode(cmd).apply();
+                lastApplied++;
+            }
+            server.setLastApplied(lastApplied);
             return Ack.newBuilder().setTerm(server.getTerm()).setSuccess(true).build();
         } else if (msg instanceof RequestVote) {
             RequestVote rv = (RequestVote) msg;
@@ -109,7 +116,7 @@ public class FollowerState implements ServerState{
         if (server.getLogs().isEmpty()) {
             return true;
         }
-        int lastIndex = server.getLogs().size();
+        int lastIndex = server.getLogs().size() - 1;
         if (rv.getLastLogIndex() < lastIndex) {
             return false;
         }

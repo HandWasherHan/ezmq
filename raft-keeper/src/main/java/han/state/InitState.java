@@ -7,7 +7,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.protobuf.GeneratedMessageV3;
 
-import han.StateVisitor;
+import han.ServerVisitor;
 import han.grpc.MQService.Ack;
 
 /**
@@ -24,7 +24,7 @@ public class InitState implements ServerState{
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
-            StateVisitor.changeState(new FollowerState());
+            ServerVisitor.changeState(new FollowerState());
         }).start();
     }
 

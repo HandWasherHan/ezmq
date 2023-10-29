@@ -14,7 +14,12 @@ public class ServerSingleton {
             server = new Server(id);
         }
         server.setState(new InitState());
-
+        int lastApplied = server.getLastApplied();
+        while (lastApplied < server.getCommitIndex()) {
+            Cmd.decode(server.getLogs().get(lastApplied).getCmd()).apply();
+            lastApplied++;
+        }
+        server.setLastApplied(lastApplied);
 
     }
 

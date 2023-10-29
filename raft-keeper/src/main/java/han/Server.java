@@ -1,6 +1,5 @@
 package han;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import han.grpc.Sender;
@@ -34,8 +33,8 @@ public class Server {
 
     public Server(int id) {
         this.id = id;
-        // todo 从日志文件中恢复
-        this.logs = new ArrayList<>();
+        this.logs = LogOperatorSingleton.read();
+        this.commitIndex = logs.size() - 1;
     }
 
     /**
@@ -48,17 +47,11 @@ public class Server {
             return leaderId;
         }
         Server server = this;
-        LogOperator logOperator;
-        try {
-            logOperator = new LogOperator("test" + server.getId() + ".log");
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
-        }
         server.getLogs().add(new Log(server.getTerm(), cmd));
         System.out.println(server.getLogs() + "commitIndex: " + server.getCommitIndex());
         if (Sender.send(MsgFactory.appendEntry(server), true)) {
             server.setCommitIndex(server.commitIndex + 1);
-            logOperator.write(server.getLogs().get(server.getLogs().size() - 1));
+            LogOperatorSingleton.write(server.getLogs().get(server.getLogs().size() - 1));
         } else {
             return -1;
         }

@@ -21,6 +21,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import han.Constant;
+import han.LogOperatorSingleton;
 import han.MsgFactory;
 import han.Server;
 import han.ServerSingleton;
@@ -48,6 +49,7 @@ public class Sender {
         if (multi) {
             System.out.println("本机的id是:");
             me = new Scanner(System.in).nextInt();
+            LogOperatorSingleton.init("test" + me + ".log");
         }
         init(multi, me);
     }
@@ -78,8 +80,9 @@ public class Sender {
             int id = Integer.parseInt(serversCnf[0]);
             if (hostname.equals("me") || (multi && id == me)) {
                 ServerSingleton.init(id);
-                HandlerInitializer.init(port);
                 ServerSingleton.getServer().setId(id);
+                ServerSingleton.getServer().setLeaderId(me);
+                HandlerInitializer.init(port);
             }
             if (id != serverStubList.size() + 1) {
                 throw new RuntimeException("id与实际不符, 请使用从1开始、连续的id");
@@ -123,7 +126,6 @@ public class Sender {
         for (int i = 0; i < serverStubList.size(); i++) {
             ServerStubContext serverStubContext = serverStubList.get(i);
             if (carryEntry) {
-                // fixme 疑似nextIndex不对
                 Integer nextIndex = server.getNextIndex().get(i);
                 if (nextIndex != null && nextIndex < server.getLogs().size()) {
                     han.grpc.MQService.Log log = MsgFactory.log(server.getLogs().get(nextIndex));

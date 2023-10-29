@@ -17,7 +17,7 @@ public class Log {
         this.cmd = cmd;
     }
 
-    public Log(int term, Cmd<?, ?> cmd) {
+    public Log(int term, Cmd cmd) {
         this.term = term;
         try {
             this.cmd = new ObjectMapper().writeValueAsString(cmd);

@@ -14,7 +14,7 @@ import com.google.protobuf.GeneratedMessageV3;
 import han.MsgFactory;
 import han.Server;
 import han.ServerSingleton;
-import han.StateVisitor;
+import han.ServerVisitor;
 import han.grpc.Sender;
 import han.grpc.MQService.AppendEntry;
 import han.grpc.MQService.Ack;
@@ -37,7 +37,7 @@ public class CandidateState implements ServerState{
         scheduledExecutorService.execute(() -> {
             if(Sender.send(MsgFactory.requestVote())) {
                 logger.info("选举成功，我是新的leader，任期号为{}", ServerSingleton.getServer().getTerm());
-                StateVisitor.changeState(new LeaderState());
+                ServerVisitor.changeState(new LeaderState());
             }
         });
 
@@ -53,7 +53,7 @@ public class CandidateState implements ServerState{
         Server server = ServerSingleton.getServer();
         scheduledExecutorService.schedule(() -> {
             logger.info("选举超时失败，重新选举");
-            StateVisitor.changeState(server, new FollowerState());
+            ServerVisitor.changeState(server, new FollowerState());
         }, VOTE_TIME, TimeUnit.SECONDS);
     }
 
@@ -63,7 +63,7 @@ public class CandidateState implements ServerState{
         if (msg instanceof AppendEntry) {
             AppendEntry appendEntry = (AppendEntry) msg;
             if (appendEntry.getTerm() >= server.getTerm()) {
-                StateVisitor.changeState(new FollowerState());
+                ServerVisitor.changeState(new FollowerState());
                 server.setLeaderId(appendEntry.getLeaderId());
             }
         }

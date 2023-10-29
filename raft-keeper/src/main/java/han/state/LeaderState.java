@@ -14,7 +14,7 @@ import com.google.protobuf.GeneratedMessageV3;
 
 import han.Constant;
 import han.ServerSingleton;
-import han.StateVisitor;
+import han.ServerVisitor;
 import han.grpc.MQService.AppendEntry;
 import han.grpc.MQService.Ack;
 import han.Server;
@@ -61,7 +61,7 @@ public class LeaderState implements ServerState{
         Server server = ServerSingleton.getServer();
         int value = server.getLogs().size() - 1;
         return AppendEntry.newBuilder()
-                .setLeaderId(0)
+                .setLeaderId(server.getId())
                 .setCommitIndex(server.getCommitIndex())
                 .setPrevLogIndex(value)
                 .setPrevLogTerm(value == -1 ? 0 : server.getLogs().get(value).getTerm())
@@ -75,7 +75,7 @@ public class LeaderState implements ServerState{
         if (msg instanceof AppendEntry) {
             AppendEntry appendEntry = (AppendEntry) msg;
             if (appendEntry.getTerm() > server.getTerm()) {
-                StateVisitor.changeState(server, new FollowerState());
+                ServerVisitor.changeState(server, new FollowerState());
             }
         }
         return null;
@@ -95,7 +95,7 @@ public class LeaderState implements ServerState{
         Ack ack = (Ack) msg;
         if (ack.getTerm() > server.getTerm()) {
             server.setTerm(ack.getTerm());
-            StateVisitor.changeState(server, new FollowerState());
+            ServerVisitor.changeState(server, new FollowerState());
         }
     }
 
