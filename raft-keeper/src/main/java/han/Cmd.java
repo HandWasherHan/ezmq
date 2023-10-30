@@ -35,7 +35,7 @@ public interface Cmd extends Serializable {
         }
     }
 
-    void apply();
+    Object apply();
 
     static void main(String[] args) {
         System.out.println(KVSingleton.map);
@@ -43,7 +43,7 @@ public interface Cmd extends Serializable {
         String encode = encode(KVCmd);
         System.out.println(encode);
         Cmd decode = decode(encode);
-        decode.apply();
+        System.out.println(decode.apply());
         System.out.println(KVSingleton.map);
     }
 }

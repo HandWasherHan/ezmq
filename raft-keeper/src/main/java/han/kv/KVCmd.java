@@ -35,8 +35,9 @@ public class KVCmd implements Cmd {
     }
 
     @Override
-    public void apply() {
+    public Object apply() {
         KVSingleton.map.put(id, msg);
+        return null;
     }
 
     /**

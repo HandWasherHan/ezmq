@@ -22,13 +22,14 @@ public class DQCmd implements Cmd, Serializable {
     }
 
     @Override
-    public void apply() {
+    public Object apply() {
         if (push) {
             DequeSingleton.queue.addLast(msg);
         } else {
             String s = DequeSingleton.queue.removeFirst();
             System.out.println(s);
         }
+        return null;
     }
 
     public boolean isPush() {
