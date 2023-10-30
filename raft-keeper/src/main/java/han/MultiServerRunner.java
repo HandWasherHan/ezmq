@@ -3,6 +3,8 @@ package han;
 import java.util.InvalidPropertiesFormatException;
 import java.util.Scanner;
 
+import han.dq.DQCmd;
+import han.dq.DequeSingleton;
 import han.grpc.HandlerInitializer;
 import han.kv.KVSingleton;
 import han.kv.KVCmd;
@@ -35,6 +37,17 @@ public class MultiServerRunner {
                 case "kv":
                     System.out.println(KVSingleton.map);
                     continue;
+                case "dq":
+                    System.out.println(DequeSingleton.queue);
+                    continue;
+                case "push":
+                    toApply = new DQCmd(true, scanner.nextLine());
+                    cmd = Cmd.encode(toApply);
+                    break;
+                case "pull":
+                    toApply = new DQCmd(false, scanner.nextLine());
+                    cmd = Cmd.encode(toApply);
+                    break;
                 case "set":
                     toApply = new KVCmd(Integer.parseInt(scanner.nextLine()), scanner.nextLine());
                     cmd = Cmd.encode(toApply);

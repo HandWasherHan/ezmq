@@ -27,6 +27,7 @@ public class Bootstrap {
     static int state = 0;
     static int me;
     static int port;
+    static String logFilename;
 
     public static void batch(int id) throws InvalidPropertiesFormatException {
         new Bootstrap().initLocalServer(id)
@@ -43,7 +44,9 @@ public class Bootstrap {
     }
 
     Bootstrap initLogOperator() {
-        return initLogOperator("test" + me + ".log");
+        logFilename = "test" + me + ".log";
+        logger.info("使用默认日志文件名{}", logFilename);
+        return initLogOperator(logFilename);
     }
 
     Bootstrap initLogOperator(String filename) {
@@ -57,6 +60,7 @@ public class Bootstrap {
             logger.warn("日志文件名不合法:{}, 请使用字母数字组合, 并以[.log]作后缀. " +
                     "已替换为默认日志文件名: {}", filename, filename = "test" + me + ".log");
         }
+        logFilename = filename;
         LogOperatorSingleton.init(filename);
         state = 2;
         return this;

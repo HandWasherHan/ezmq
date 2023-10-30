@@ -82,12 +82,12 @@ public class FollowerState implements ServerState{
             logger.debug("收到的请求:{}, 自己的logs: {}", appendEntry, server.getLogs());
             if (!appendEntry.getEntryList().isEmpty()) {
                 server.getLogs().add(MsgFactory.log(appendEntry.getEntry(0)));
-                LogOperatorSingleton.write(server.getLogs().get(server.getCommitIndex()));
-                server.setCommitIndex(server.getCommitIndex() + 1);
             }
             // fixme when lastApplied equals to appendEntry.getCommitIndex(), this index should be applied
             int lastApplied = server.getLastApplied();
             while (lastApplied < appendEntry.getCommitIndex()) {
+                LogOperatorSingleton.write(server.getLogs().get(server.getCommitIndex()));
+                server.setCommitIndex(server.getCommitIndex() + 1);
                 String cmd = server.getLogs().get(lastApplied).getCmd();
                 Cmd.decode(cmd).apply();
                 lastApplied++;

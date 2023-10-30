@@ -3,6 +3,7 @@ package han.state;
 import static han.Constant.HEART_BEAT_INTERVAL;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -12,7 +13,9 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.protobuf.GeneratedMessageV3;
 
+import han.Cmd;
 import han.Constant;
+import han.Log;
 import han.ServerSingleton;
 import han.ServerVisitor;
 import han.grpc.MQService.AppendEntry;
@@ -40,7 +43,7 @@ public class LeaderState implements ServerState{
             server.getNextIndex().add(0);
             server.getMatchIndex().add(0);
         }
-
+        reboot();
     }
 
     @Override
@@ -97,6 +100,18 @@ public class LeaderState implements ServerState{
             server.setTerm(ack.getTerm());
             ServerVisitor.changeState(server, new FollowerState());
         }
+    }
+
+    synchronized void reboot() {
+        Server server = ServerSingleton.getServer();
+        List<Log> logs = server.getLogs();
+        int commitIndex = server.getCommitIndex();
+        while (commitIndex < logs.size() - 1) {
+            String cmd = logs.get(commitIndex + 1).getCmd();
+            Cmd.decode(cmd).apply();
+            commitIndex++;
+        }
+        server.setCommitIndex(commitIndex);
     }
 
     @Override
