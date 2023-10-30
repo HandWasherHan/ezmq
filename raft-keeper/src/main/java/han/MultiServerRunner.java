@@ -4,8 +4,8 @@ import java.util.InvalidPropertiesFormatException;
 import java.util.Scanner;
 
 import han.grpc.HandlerInitializer;
-import han.mock.KVSingleton;
-import han.mock.MockCmd;
+import han.kv.KVSingleton;
+import han.kv.KVCmd;
 import han.state.InitState;
 
 /**
@@ -36,7 +36,7 @@ public class MultiServerRunner {
                     System.out.println(KVSingleton.map);
                     continue;
                 case "set":
-                    toApply = new MockCmd(Integer.parseInt(scanner.nextLine()), scanner.nextLine());
+                    toApply = new KVCmd(Integer.parseInt(scanner.nextLine()), scanner.nextLine());
                     cmd = Cmd.encode(toApply);
                     break;
                 default:

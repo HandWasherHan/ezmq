@@ -1,4 +1,4 @@
-package han.mock;
+package han.kv;
 
 import han.Cmd;
 
@@ -6,14 +6,14 @@ import han.Cmd;
  * @author han <handwasherhan@gmail.com>
  * Created on 2023
  */
-public class MockCmd implements Cmd {
+public class KVCmd implements Cmd {
     int id;
     String msg;
 
-    public MockCmd() {
+    public KVCmd() {
     }
 
-    public MockCmd(int id, String msg) {
+    public KVCmd(int id, String msg) {
         this.id = id;
         this.msg = msg;
     }
@@ -45,9 +45,9 @@ public class MockCmd implements Cmd {
      * but my ide - idea, doesn't know that.
      */
     public static void main(String[] args) {
-        MockCmd mockCmd = new MockCmd();
-        mockCmd.setId(1);
-        mockCmd.setMsg("hello");
-        System.out.println(mockCmd.getMsg() + mockCmd.getId());
+        KVCmd KVCmd = new KVCmd();
+        KVCmd.setId(1);
+        KVCmd.setMsg("hello");
+        System.out.println(KVCmd.getMsg() + KVCmd.getId());
     }
 }

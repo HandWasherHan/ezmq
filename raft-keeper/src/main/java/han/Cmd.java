@@ -5,8 +5,8 @@ import java.io.Serializable;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import han.mock.KVSingleton;
-import han.mock.MockCmd;
+import han.kv.KVSingleton;
+import han.kv.KVCmd;
 
 /**
  * @author han <handwasherhan@gmail.com>
@@ -39,8 +39,8 @@ public interface Cmd extends Serializable {
 
     static void main(String[] args) {
         System.out.println(KVSingleton.map);
-        MockCmd mockCmd = new MockCmd(1, "hello");
-        String encode = encode(mockCmd);
+        KVCmd KVCmd = new KVCmd(1, "hello");
+        String encode = encode(KVCmd);
         System.out.println(encode);
         Cmd decode = decode(encode);
         decode.apply();
