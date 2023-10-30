@@ -36,7 +36,8 @@ public class Server {
         this.id = id;
         this.leaderId = id;
         this.logs = LogOperatorSingleton.read();
-        this.commitIndex = logs.size() - 1;
+        this.commitIndex = -1;
+        this.lastApplied = -1;
         this.state = new InitState();
     }
 

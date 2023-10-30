@@ -84,13 +84,14 @@ public class FollowerState implements ServerState{
                 server.getLogs().add(MsgFactory.log(appendEntry.getEntry(0)));
             }
             // fixme when lastApplied equals to appendEntry.getCommitIndex(), this index should be applied
+            int commitIndex = Math.min(server.getLogs().size() - 1, appendEntry.getCommitIndex());
             int lastApplied = server.getLastApplied();
-            while (lastApplied < appendEntry.getCommitIndex()) {
-                LogOperatorSingleton.write(server.getLogs().get(server.getCommitIndex()));
-                server.setCommitIndex(server.getCommitIndex() + 1);
+            server.setCommitIndex(commitIndex);
+            while (lastApplied < commitIndex) {
+                lastApplied++;
+                LogOperatorSingleton.write(server.getLogs().get(lastApplied));
                 String cmd = server.getLogs().get(lastApplied).getCmd();
                 Cmd.decode(cmd).apply();
-                lastApplied++;
             }
             server.setLastApplied(lastApplied);
             return Ack.newBuilder().setTerm(server.getTerm()).setSuccess(true).build();
